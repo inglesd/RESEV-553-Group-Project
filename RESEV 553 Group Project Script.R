@@ -20,7 +20,7 @@ prgusap1_puf <- read_sas("prgusap1_puf.sas7bdat",
 
 View(prgusap1_puf)
 
-df <- subset(prgusap1_puf, select = c(RACETHN_4CAT, REGION_US, GENDER_R, D_Q18B,
+df <- subset(prgusap1_puf, select = c(RACETHN_5CAT, REGION_US, GENDER_R,
                                       J_Q04A, BIRTHRGNUS_C, EDCAT8, J_Q09USX))
 
 #data overview 
