@@ -67,41 +67,100 @@ das %>%
   theme(axis.text.x = element_text(size = 10))
 
 #Region
+das %>%
+  ggplot(aes(Region, fill = Region))+
+  geom_bar(fill = "#97B3C6", color = "black")+
+  geom_bar(position = "dodge",
+           alpha = 0.7)+
+  theme_bw()+
+  labs(title = NULL,
+       x = "Region",
+       y = "Count")+
+  scale_fill_discrete(name = "Region", label=c("1 - Northeast", "2 - Midwest", "3 - South", 
+                                             "4 - West")) +
+  theme(axis.text.x = element_text(size = 10))
 
 #Highest education
-
+das %>%
+  ggplot(aes(Edu8, fill = Edu8))+
+  geom_bar(fill = "#97B3C6", color = "black")+
+  geom_bar(position = "dodge",
+           alpha = 0.7)+
+  theme_bw()+
+  labs(title = NULL,
+       x = "Education level",
+       y = "Count")+
+  scale_fill_discrete(name = "Education level", label=c("1 - Primary or less", "2 - Lower secondary", "3 - Upper secondary", 
+                                             "4 - Post secondary, non-tertiary", "5 - Tertiary, professional degree", 
+                                             "6 - Tertiary, bachelor degree", "7 - Tertiary, master degree", "8 - Tertiary, research degree",
+                                             "NA - Not stated")) +
+  theme(axis.text.x = element_text(size = 10))
 #Income
+das %>%
+  ggplot(aes(Income, fill = Income))+
+  geom_bar(fill = "#97B3C6", color = "black")+
+  geom_bar(position = "dodge",
+           alpha = 0.7)+
+  theme_bw()+
+  labs(title = NULL,
+       x = "Income",
+       y = "Count")+
+  scale_fill_discrete(name = "Household income in last 12 months", label=c("1 - Between $1 and $9,999", "2 - Between $10,000 and $19,999", "3 - Between $20,000 and $29,999", 
+                                                        "4 - Between $30,000 and $39,999", "5 - Between $40,000 and $49,999", 
+                                                        "6 - Between $50,000 and $59,999", "7 - Between $60,000 and $74,999", "8 - Between $75,000 and $99,999",
+                                                        "9 - Between $100,000 and $149,999", "10 - $150,000 or more",
+                                                        "11 - No household income","NA - Not stated")) +
+  theme(axis.text.x = element_text(size = 10))
+
 
 #Comparing the variables ####
 
-table(das) #Background x Geographical region
+table(das) #Race x Geographical region
 (df_tbl <- as.data.frame(table(das)))
 
-# Background split by geographical region
+# Region split by race
 ggplot(data = df_tbl) +
-  geom_bar(mapping = aes(x = Region, y = Freq, fill =  Race5), 
+  geom_bar(mapping = aes(x = Race5, y = Freq, fill =  Region), 
            position = "dodge", #it is next to each other 
-           stat = "identity", 
-           color = "black") +
-  xlab("Regions of US") +
-  ylab("Freq") +
-  scale_x_discrete(label=c("Northeast", "Midwest", "South", "Other", "NA")) +
-  scale_fill_manual(name = "RACE", 
-                    label=c("Hispanic", "White", "Black", "West", "Other"),
-                    values=c("chocolate4", "palevioletred1", "papayawhip", "Chocolate")) +
+           stat = "identity") +
+  xlab("Race") +
+  ylab("Region") +
+  scale_x_discrete(label=c("Hispanic", "White", "Black", "Asian/Pacific islander", "Other")) +
+  scale_fill_manual(name = "Region", 
+                    label=c("Northeast", "Midwest", "South", "West"),
+                    values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442")) +
   theme(axis.text.x = element_text(size = 10))
 
-#scale_x_discrete changes x axis 
-#scale_fill_manual you can change the colors and find them online 
-# Birth region split by gender
+# Education level split by region
 ggplot(data = df_tbl) +
-  geom_bar(mapping = aes(x = Race5, y = Freq, fill = Race5), 
+  geom_bar(mapping = aes(x = Region, y = Freq, fill =  Edu8), 
            position = "dodge", 
-           stat = "identity", 
-           color = "black") +
-  xlab("Region in US") +
-  ylab("Freq") +
-  scale_x_discrete(label=c("North America and Western Europe", "Latin America and the Caribbean", "Other")) +
-  scale_fill_discrete(name = "Gender", label=c("Male", "Female")) +
+           stat = "identity") +
+  xlab("Region") +
+  ylab("Education level") +
+  scale_x_discrete(label=c("Northeast", "Midwest", "South", "West")) +
+  scale_fill_manual(name = "Education level", 
+                    label=c("Primary or less", "Lower secondary", "Upper secondary", 
+                                             "Post secondary, non-tertiary", "Tertiary, professional degree", 
+                                             "Tertiary, bachelor degree", "Tertiary, master degree", 
+                                            "Tertiary, research degree"),
+                    values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")) +
+  theme(axis.text.x = element_text(size = 10))
+
+#Household income split by region
+ggplot(data = df_tbl) +
+  geom_bar(mapping = aes(x = Region, y = Freq, fill =  Income), 
+           position = "dodge", 
+           stat = "identity") +
+  xlab("Region") +
+  ylab("Income") +
+  scale_x_discrete(label=c("Northeast", "Midwest", "South", "West")) +
+  scale_fill_manual(name = "Household income", 
+                    label=c("Between $1 and $9,999", "Between $10,000 and $19,999", "Between $20,000 and $29,999", 
+                            "Between $30,000 and $39,999", "Between $40,000 and $49,999", 
+                            "Between $50,000 and $59,999", "Between $60,000 and $74,999", "Between $75,000 and $99,999",
+                            "Between $100,000 and $149,999", "$150,000 or more",
+                            "No household income"),
+                    values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#000000", "#9999CC", "#66CC99")) +
   theme(axis.text.x = element_text(size = 10))
 
