@@ -3,6 +3,7 @@ library(tidyverse)
 library(psych)
 library(dplyr)
 library(ggplot2)
+library(scales)
 
 #Import the dataset
 
@@ -18,41 +19,56 @@ df$Income <-(df$J_Q09USX)
 
 das <-subset(df, select = c(Race5, Region, Edu8, Income))
 
+#identifying rows with NAs
+rownames(das)[apply(das, 2, anyNA)]
+#removing all observations with NAs
+das_clean <- das %>% na.omit()
+
+
 #Describe the variables ####
-str(das)
-summary(das) 
-table(das)
-describe(das) 
+str(das_clean)
+summary(das_clean) 
+table(das_clean)
+describe(das_clean) 
 
 #Change variable type and describe each variable
 #Race variable
-das$Race5 <- as.factor(das$Race5)
-str(das$Race5)
-summary(das$Race5)
-table(das$Race5)
-describe(das$Race5)
+das_clean$Race5 <- as.factor(das_clean$Race5)
+str(das_clean$Race5)
+summary(das_clean$Race5)
+table(das_clean$Race5)
+describe(das_clean$Race5)
 
 #Region variable
-das$Region <- as.factor(das$Region)
-str(das$Region)
-summary(das$Region)
-table(das$Region)
+das_clean$Region <- as.factor(das_clean$Region)
+str(das_clean$Region)
+summary(das_clean$Region)
+table(das_clean$Region)
 
 #Highest education variable
-das$Edu8 <- as.factor(das$Edu8)
-str(das$Edu8)
-summary(das$Edu8)
-table(das$Edu8)
+das_clean$Edu8 <- as.factor(das_clean$Edu8)
+str(das_clean$Edu8)
+summary(das_clean$Edu8)
+table(das_clean$Edu8)
 
 #Income variable
-das$Income <- as.factor(das$Income)
-str(das$Income)
-summary(das$Income)
-table(das$Income)
+das_clean$Income <- as.factor(das_clean$Income)
+str(das_clean$Income)
+summary(das_clean$Income)
+table(das_clean$Income)
 
 #Categorical Data Visualization ####
+data_perc <- t(prop.table(table(das_clean$Race5))) * 100
+barplot(data_perc, ylab = "Percent")
+
+ggplot(das_clean, aes(Race5)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))+
+  scale_y_continuous(labels = percent)
+
+
+
 #Race
-das %>%
+das_clean %>%
   ggplot(aes(Race5, fill = Race5))+
   geom_bar(fill = "#97B3C6", color = "black")+
   geom_bar(position = "dodge",
@@ -67,7 +83,15 @@ das %>%
   theme(axis.text.x = element_text(size = 10))
 
 #Region
-das %>%
+region_per <- t(prop.table(table(das_clean$Region))) * 100
+barplot(region_per, y = "Percent")
+
+ggplot(das_clean$region, aes(x))+
+  geom_bar(aes(y = (..count..)/sum(..count..)))+
+  scale_y_continuous(labels = percent)
+
+
+das_clean %>%
   ggplot(aes(Region, fill = Region))+
   geom_bar(fill = "#97B3C6", color = "black")+
   geom_bar(position = "dodge",
@@ -75,13 +99,13 @@ das %>%
   theme_bw()+
   labs(title = NULL,
        x = "Region",
-       y = "Count")+
+       y = "Percent")+
   scale_fill_discrete(name = "Region", label=c("1 - Northeast", "2 - Midwest", "3 - South", 
                                              "4 - West")) +
   theme(axis.text.x = element_text(size = 10))
 
 #Highest education
-das %>%
+das_clean%>%
   ggplot(aes(Edu8, fill = Edu8))+
   geom_bar(fill = "#97B3C6", color = "black")+
   geom_bar(position = "dodge",
@@ -96,7 +120,7 @@ das %>%
                                              "NA - Not stated")) +
   theme(axis.text.x = element_text(size = 10))
 #Income
-das %>%
+das_clean %>%
   ggplot(aes(Income, fill = Income))+
   geom_bar(fill = "#97B3C6", color = "black")+
   geom_bar(position = "dodge",
@@ -115,12 +139,12 @@ das %>%
 
 #Comparing the variables ####
 
-table(das) #Race x Geographical region
-(df_tbl <- as.data.frame(table(das)))
+table(das_clean) #Race x Geographical region
+(df_tbl <- as.data.frame(table(das_clean)))
 
 # Region split by race
 ggplot(data = df_tbl) +
-  geom_bar(mapping = aes(x = Race5, y = Freq, fill =  Region), 
+  geom_bar(mapping = aes(x = Race5, y = Freq, fill =  Region),
            position = "dodge", #it is next to each other 
            stat = "identity") +
   xlab("Race") +
