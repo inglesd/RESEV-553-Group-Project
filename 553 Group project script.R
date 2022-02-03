@@ -18,6 +18,14 @@ df$Income <-(df$J_Q09USX)
 
 das <-subset(df, select = c(Race5, Region, Edu8, Income))
 
+
+#identifying the rows with NAs
+rownames(das)[apply(das, 2, anyNA)]
+
+#removing all observations with NAs
+das <- das %>% na.omit()
+
+
 #Describe the variables ####
 str(das)
 summary(das) 
@@ -164,3 +172,50 @@ ggplot(data = df_tbl) +
                     values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#000000", "#9999CC", "#66CC99")) +
   theme(axis.text.x = element_text(size = 10))
 
+
+
+ggplot(data = df_tbl) +
+  geom_bar(mapping = aes(x = Region, y = Freq, fill =  Income), 
+           position = "dodge", 
+           stat = "identity") +
+  xlab("Region") +
+  ylab("Income") +
+  scale_x_discrete(label=c("Northeast", "Midwest", "South", "West")) +
+  scale_y_continuous(labels = scales::percent(100, scale = 1)) +
+  scale_fill_manual(name = "Household income", 
+                    label=c("Between $1 and $9,999", "Between $10,000 and $19,999", "Between $20,000 and $29,999", 
+                            "Between $30,000 and $39,999", "Between $40,000 and $49,999", 
+                            "Between $50,000 and $59,999", "Between $60,000 and $74,999", "Between $75,000 and $99,999",
+                            "Between $100,000 and $149,999", "$150,000 or more",
+                            "No household income"),
+                    values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#000000", "#9999CC", "#66CC99")) +
+  theme(axis.text.x = element_text(size = 10))
+
+#trying to make the table percentages ####
+
+data_perc <- t(prop.table(table(das$Income))) * 100
+
+barplot(data_perc, ylab = "Percent") 
+
+library("scales")
+
+ggplot(data = das) +
+  geom_bar(aes(y = (..count..)/sum(..count..), x = Income))
+  # position = "dodge", 
+  #          stat = "identity") +
+  # xlab("Region") +
+  # ylab("Income") +
+  # # scale_x_discrete(label=c("Northeast", "Midwest", "South", "West")) +
+  # scale_y_continuous(labels = percent)+
+  # scale_fill_manual(name = "Household income", 
+  #                   label=c("Between $1 and $9,999", "Between $10,000 and $19,999", "Between $20,000 and $29,999", 
+  #                           "Between $30,000 and $39,999", "Between $40,000 and $49,999", 
+  #                           "Between $50,000 and $59,999", "Between $60,000 and $74,999", "Between $75,000 and $99,999",
+  #                           "Between $100,000 and $149,999", "$150,000 or more",
+  #                           "No household income"),
+  #                   values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#000000", "#9999CC", "#66CC99")) +
+  # theme(axis.text.x = element_text(size = 10))
+
+ggplot(data, aes(x)) +                            
+  geom_bar(aes(y = (..count..)/sum(..count..))) + 
+  scale_y_continuous(labels = percent)
