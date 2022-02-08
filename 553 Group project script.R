@@ -218,16 +218,16 @@ ggplot(data = df_tbl) +
 
 #trying to make the table percentages ####
 
-data_perc <- t(prop.table(table(das$Income))) * 100
-
-barplot(data_perc, ylab = "Percent") 
-
-library("scales")
-
-ggplot(data = das) +
-  geom_bar(aes(y = (..count..)/sum(..count..), x = Income))
-  # position = "dodge", 
-  #          stat = "identity") +
+# data_perc <- t(prop.table(table(das$Income))) * 100
+# 
+# barplot(data_perc, ylab = "Percent") 
+# 
+# library("scales")
+# 
+# ggplot(data = das) +
+#   geom_bar(aes(y = (..count..)/sum(..count..), x = Income))
+#   position = "dodge", 
+#           stat = "identity") +
   # xlab("Region") +
   # ylab("Income") +
   # # scale_x_discrete(label=c("Northeast", "Midwest", "South", "West")) +
@@ -241,7 +241,83 @@ ggplot(data = das) +
   #                   values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#000000", "#9999CC", "#66CC99")) +
   # theme(axis.text.x = element_text(size = 10))
 
-ggplot(data, aes(x)) +                            
-  geom_bar(aes(y = (..count..)/sum(..count..))) + 
-  scale_y_continuous(labels = percent)
+ggplot(das, aes(x = Region)) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  scale_y_continuous(labels = proport)
 
+# das_perc <- das %>%
+#   group_by(Income) %>%
+#   mutate(perc = 100 / sum (100)) %>%
+#   as.data.frame()
+# das_perc
+
+# das_perc <- transform(data, 
+#                       perc = ave (100,
+#                                   Income,
+#                                   FUN = prop.table))
+
+
+das_Income <-subset(das, select = c(Income))
+
+das_Region <- subset(das, select = c(Region))
+
+ggplot(data = das) +
+  geom_bar(mapping = aes(x = Region, y = Income, fill = Income),
+           position = "dodge", 
+           stat = "identity") +
+  # xlab("Region") +
+  # ylab("Income") +
+  # scale_x_discrete(label=c("Northeast", "Midwest", "South", "West")) +
+  # scale_y_continuous(labels = scales::percent(100, scale = 1)) +
+  # scale_fill_manual(name = "Household income", 
+  #                   label=c("Between $1 and $9,999", "Between $10,000 and $19,999", "Between $20,000 and $29,999", 
+  #                           "Between $30,000 and $39,999", "Between $40,000 and $49,999", 
+  #                           "Between $50,000 and $59,999", "Between $60,000 and $74,999", "Between $75,000 and $99,999",
+  #                           "Between $100,000 and $149,999", "$150,000 or more",
+  #                           "No household income"),
+  #                   values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#000000", "#9999CC", "#66CC99")) +
+  theme(axis.text.x = element_text(size = 10))
+
+# library
+library(ggplot2)
+library(viridis)
+library(hrbrthemes)
+
+# create a dataset
+specie <- c(rep("sorgho" , 3) , rep("poacee" , 3) , rep("banana" , 3) , rep("triticum" , 3) )
+condition <- rep(c("normal" , "stress" , "Nitrogen") , 4)
+value <- abs(rnorm(12 , 0 , 15))
+data <- data.frame(specie,condition,value)
+
+# Small multiple
+ggplot(das, aes(fill=Income, y=Income, x=Region)) + 
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_viridis(discrete = T) +
+  #ggtitle("Studying 4 species..") +
+  theme_ipsum() +
+  xlab("")
+
+ggplot(das_perc, aes(fill = perc, y=Income, x=Region)) + 
+  geom_bar(position="fill", stat="identity")
+
+perc_income <- table(das$Income)
+prop.table(perc_income)
+
+
+perc_incomebyregion <- table(das$Income, das$Region)
+prop.table(perc_incomebyregion)
+
+# reorder_size <- function(x) {
+#   factor(x, levels = names(sort(table(x), decreasing = TRUE)))
+# }
+
+ggplot(data = perc_incomebyregion, aes(x = Region)) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  xlab("Region") +
+  scale_y_continuous(labels = scales::percent, name = "Proportion") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+das%>%group_by(Region)%>%mutate(Percentage=paste0(round(Income/sum(Income)
+                                                        *100,2),"%"))
+  
