@@ -4,8 +4,12 @@ library(psych)
 library(dplyr)
 library(ggplot2)
 library(scales)
+library(AggregateR)
+library(plyr)
 
-#Import the dataset
+#Import the dataset ####
+library(haven)
+prgusap1_puf <- read_sas("prgusap1_puf.sas7bdat", NULL)
 
 #Prepare the dataset for analysis ####
 
@@ -17,24 +21,17 @@ df$Region <- (df$REGION_US)
 df$Edu8 <-(df$EDCAT8)
 df$Income <-(df$J_Q09USX)
 
-das <-subset(df, select = c(Race5, Region, Edu8, Income))
+#Dataset for the analysis ####
+das <- subset(df, select = c(Race5, Region, Edu8, Income))
 
-<<<<<<< HEAD
-#identifying rows with NAs
+#Cleaning the dataset
+# First identifying rows with NAs
 rownames(das)[apply(das, 2, anyNA)]
 #removing all observations with NAs
 das_clean <- das %>% na.omit()
-=======
-
-#identifying the rows with NAs
-rownames(das)[apply(das, 2, anyNA)]
-
-#removing all observations with NAs
-das <- das %>% na.omit()
->>>>>>> 4acfa51a647608afddb0c31e33cc2c35f3aa749e
 
 
-#Describe the variables ####
+#Describing each variables ####
 str(das_clean)
 summary(das_clean) 
 table(das_clean)
@@ -62,6 +59,17 @@ table(das_clean$Edu8)
 
 #Income variable
 das_clean$Income <- as.factor(das_clean$Income)
+str(das_clean$Income)
+summary(das_clean$Income)
+table(das_clean$Income)
+
+#Recoding Income variable ####
+das_clean$Income <- as.factor(das_clean$Income)
+
+das_clean$Income = revalue(das_clean$Income, c("1" = "1", "2" = "1", "3" = "2", "4" = "2", 
+                                               "5" = "3", "6" = "3", "7" = "4", "8" = "5",
+                                               "9" = "6", "10" = "7", "11" = "8"))
+
 str(das_clean$Income)
 summary(das_clean$Income)
 table(das_clean$Income)
@@ -138,11 +146,9 @@ das_clean %>%
   labs(title = NULL,
        x = "Income",
        y = "Count")+
-  scale_fill_discrete(name = "Household income in last 12 months", label=c("1 - Between $1 and $9,999", "2 - Between $10,000 and $19,999", "3 - Between $20,000 and $29,999", 
-                                                        "4 - Between $30,000 and $39,999", "5 - Between $40,000 and $49,999", 
-                                                        "6 - Between $50,000 and $59,999", "7 - Between $60,000 and $74,999", "8 - Between $75,000 and $99,999",
-                                                        "9 - Between $100,000 and $149,999", "10 - $150,000 or more",
-                                                        "11 - No household income","NA - Not stated")) +
+  scale_fill_discrete(name = "Household income in last 12 months", label=c("1 - Between $1 and $19,999", "2 - Between $20,000 and 39,999", "3 - Between $40,000 and $59,999", 
+                                                        "4 - Between $60,000 and $74,999", "5 - Between $75,000 and $99,999", 
+                                                        "6 - Between $100,000 and $149,999", "7 - $150,000 or more", "8 - No household income")) +
   theme(axis.text.x = element_text(size = 10))
 
 
