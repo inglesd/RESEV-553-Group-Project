@@ -62,7 +62,7 @@ df_ALL <- df_Ed_Reg_Race %>%
                                        ifelse(Income==7, "60,000-74,999",
                                               ifelse(Income==8, "75,000-99,999",
                                                      ifelse(Income==10, "100,000-149,999",
-                                                            ifelse(Income== 11 | Income==NA, "Not Stated", "Other Income"))))))))
+                                                            ifelse(Income== 11 | Income==NA, "Not Stated", "Other Income")))))))) 
 ```
 
 
