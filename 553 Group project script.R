@@ -1,10 +1,11 @@
 #Install required packages ####
 library(tidyverse)
-library(psych)
-library(dplyr)
-library(ggplot2)
-library(scales)
-library(plyr)
+
+# library(psych)
+# library(dplyr)
+# library(ggplot2)
+# library(scales)
+# library(plyr)
 
 #Import the dataset ####
 library(haven)
@@ -14,9 +15,12 @@ df <- prgusap1_puf
 
 #Rename the variables
 #(Race5=RACETHN_5CAT, Region=REGION_US, EDU8=EDCAT8, Income=J_Q09USX)
-df_small <- df%>%
-  select(RACETHN_5CAT, REGION_US, EDCAT8, J_Q09USX) %>%
-  rename(Race=RACETHN_5CAT, Region=REGION_US, EDUC=EDCAT8, Income=J_Q09USX)
+df_small <- df %>%
+  select(RACETHN_5CAT, REGION_US, EDCAT8, J_Q09USX)
+
+df_small <- df_small %>%
+ rename(Race=RACETHN_5CAT, Region=REGION_US, EDUC=EDCAT8, Income=J_Q09USX)
+
 
 #Change the name of race variable 
 df_Race <- df_small %>%
