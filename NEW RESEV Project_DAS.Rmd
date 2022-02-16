@@ -32,8 +32,8 @@ df_Race <- df_small %>%
                        ifelse(Race==2, "White",
                               ifelse(Race==3, "Black",
                                      ifelse(Race==4, "Asian/Pacific Islander",
-                                            ifelse(Race==6, "Other",
-                                                   ifelse(Race==NA, "Not Stated")))))))
+                                            ifelse(Race==6, "Other", "Not Stated" ))))))
+                                                   #ifelse(Race==is.na(NA), "Not Stated", "NA")))))))
 ```
 Change name of Region Variables
 ```{r}
@@ -50,26 +50,62 @@ df_Ed_Reg_Race <- df_Region_Race %>%
                        ifelse(EDUC==3 | EDUC==4, "Secondary",
                               ifelse(EDUC==6, "Bachelors",
                                      ifelse(EDUC==7, "Masters",
-                                            ifelse(EDUC==5 | EDUC==8, "Professional",
-                                                   ifelse(EDUC==NA, "Not Stated")))))))
+                                            ifelse(EDUC==5 | EDUC==8, "Professional", "Other"))))))
+                                                   #ifelse(EDUC== NA, "Not Stated")))))))
 ```
 Change name of Income Variable
 ```{r}
 df_ALL <- df_Ed_Reg_Race %>%
-  mutate(Income = ifelse(Income== 1 | Income==2, "1-19,999",
-                         ifelse(Income==3 | Income== 4, "20,000-39,999",
-                                ifelse(Income== 5 | Income==6, "40,000-59,999",
-                                       ifelse(Income==7, "60,000-74,999",
-                                              ifelse(Income==8, "75,000-99,999",
-                                                     ifelse(Income==10, "100,000-149,999",
-                                                            ifelse(Income== 11 | Income==NA, "Not Stated", "Other Income")))))))) 
+  mutate(Income = ifelse(Income== 1 | Income== 2, "1-19,999",
+                         ifelse(Income== 3 | Income== 4, "20,000-39,999",
+                                ifelse(Income== 5 | Income== 6, "40,000-59,999",
+                                       ifelse(Income== 7, "60,000-74,999",
+                                              ifelse(Income== 8, "75,000-99,999",
+                                                     ifelse(Income== 9, "100,000-149,999",
+                                                            ifelse(Income== 10, "150,000 +", "Other" ))))))))
+                                                                   #ifelse(Income== 11 | Income== is.na(NA), "Not Stated", "Other Income"))))))))) 
+```
+Normal Descriptive Stats
+```{r}
+
+desc_stat_continuous <- df_ALL %>% group_by(Region,Income,Race,EDUC) %>%
+  summarize(N=n(),
+             mean=mean(Income),
+             SD=sd(Income))
+
+ write.csv(desc_state, "desc_stat_continuous.csv")
 ```
 
 
-Descriptive Statistics
+Descriptive Statistics for plot
 ```{r}
-#group_by() %>^ summarize()
-#write.csv(desc_stat, 'desc_stat.csv')
-desc_stat <
+desc_stat <- df_ALL %>% group_by(Region,Income, Race, EDUC) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_state, "desc_stat.csv")
+```
+
+
+Plot of Income by region
+```{r}
+ggplot(desc_stat, aes(x = Region, y=perc, fill=Income)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+
+```
+Plot of Race by Region
+```{r}
+ggplot(desc_stat, aes(x = Region, y=perc, fill=Race)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+```
+Plot of Education by Region
+```{r}
+ggplot(desc_stat, aes(x = Region, y=perc, fill=EDUC)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
 ```
 

@@ -1,11 +1,18 @@
 #Install required packages ####
 library(tidyverse)
+<<<<<<< HEAD
 
 # library(psych)
 # library(dplyr)
 # library(ggplot2)
 # library(scales)
 # library(plyr)
+=======
+library(psych)
+library(dplyr)
+library(ggplot2)
+library(scales)
+>>>>>>> 99eb2373efdefd2ab8b333f2d167e011a3b7d5ca
 
 #Import the dataset ####
 library(haven)
@@ -53,7 +60,26 @@ df_ALL <- df_Ed_Reg_Race %>%
                                        ifelse(Income==7, "60,000-74,999",
                                               ifelse(Income==8, "75,000-99,999",
                                                      ifelse(Income==10, "100,000-149,999",
-                                                            ifelse(Income== 11 | Income==NA, "Not Stated", "Other Income")))))))) 
+                                                            ifelse(Income== 11 | Income==NA, 
+                                                                   "Not Stated", "Other Income")))))))) 
+
+#Descriptive stat for a plot
+#group_by() %>% summarize()
+#write.csv(desc_stat, 'desc_stat.csv')
+desc_stat <- df_ALL %>% group_by(Region,Race, Income, EDUC) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+#plot income by region
+desc_stat$Income <- factor(desc_stat$Income,levels = c("1-19,999","20,000-39,999","40,000-59,999","60,000-74,999",
+                                                  "75,000-99,999","100,000-149,999", "Not Stated"))
+
+ggplot(desc_stat, aes(x=Region, y=perc, fill = Income)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+
 
 #Dataset for the analysis ####
 das <- subset(df, select = c(Race5, Region, Edu8, Income))
