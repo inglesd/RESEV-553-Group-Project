@@ -75,36 +75,77 @@ desc_stat_continuous <- df_ALL %>% group_by(Region,Income,Race,EDUC) %>%
 
  write.csv(desc_state, "desc_stat_continuous.csv")
 ```
-
-
-Descriptive Statistics for plot
+Descriptive Statistics Counts and Percent All
 ```{r}
-desc_stat <- df_ALL %>% group_by(Region,Income, Race, EDUC) %>%
+desc_stat_ALL <- df_ALL %>%
+  group_by(Region, Income, EDUC, Race)%>%
+  summarize(N=n())%>%
+  ungroup()%>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+  
+write.csv(desc_stat_ALL, "desc_stat_ALL.csv")
+desc_stat_ALL <- as.data.frame(desc_stat_ALL)
+```
+
+
+Descriptive Statistics for plot for Income by Region
+```{r}
+desc_stat_Income <- df_ALL %>% group_by(Region,Income) %>%
   summarise(N=n()) %>%
   ungroup() %>%
   group_by(Region) %>%
   mutate (perc = N/sum(N))
 
-write.csv(desc_state, "desc_stat.csv")
+write.csv(desc_stat_Income, "desc_stat_Income.csv")
+desc_stat_Income <- as.data.frame(desc_stat_Income)
 ```
 
 
 Plot of Income by region
 ```{r}
-ggplot(desc_stat, aes(x = Region, y=perc, fill=Income)) +
+desc_stat_Income$Income <- factor(desc_stat_Income$Income,levels = c( "1-19,999", "20,000-39,999", "40,000-59,999", "60,000-74,999", "75,000-99,999", "100,000-149,999", "150,000 +", "Not Stated"))
+
+ggplot(desc_stat_Income, aes(x = Region, y=perc, fill=Income)) +
   geom_bar(stat="identity", position=position_dodge()) +
   scale_y_continuous(label = scales::: percent_format(accuracy =1))
 
 ```
+Descriptive Statistics for Plot of Race by Region
+```{r}
+desc_stat_Race <- df_ALL %>% group_by(Region,Race) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_Race, "desc_stat_Race.csv")
+desc_stat_Race <- as.data.frame(desc_stat_Race)
+```
+
 Plot of Race by Region
 ```{r}
-ggplot(desc_stat, aes(x = Region, y=perc, fill=Race)) +
+ggplot(desc_stat_Race, aes(x = Region, y=perc, fill=Race)) +
   geom_bar(stat="identity", position=position_dodge()) +
   scale_y_continuous(label = scales::: percent_format(accuracy =1))
 ```
+Descriptive Statistics of Education by Region
+```{r}
+desc_stat_EDUC <- df_ALL %>% group_by(EDUC, Region) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_EDUC, "desc_stat_EDUC.csv")
+desc_stat_EDUC <- as.data.frame(desc_stat_EDUC)
+```
+
 Plot of Education by Region
 ```{r}
-ggplot(desc_stat, aes(x = Region, y=perc, fill=EDUC)) +
+desc_stat_EDUC$EDUC <- factor(desc_stat_EDUC$EDUC, levels =c("Primary", "Secondary", "Bachelors", "Masters", "Professional", "Other"))
+
+ggplot(desc_stat_EDUC, aes(x = Region, y=perc, fill=EDUC)) +
   geom_bar(stat="identity", position=position_dodge()) +
   scale_y_continuous(label = scales::: percent_format(accuracy =1))
 ```
