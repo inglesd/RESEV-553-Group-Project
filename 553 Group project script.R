@@ -103,4 +103,5 @@ rownames(das)[apply(das, 2, anyNA)]
 #removing all observations with NAs
 das_clean <- das %>% na.omit()
 
+write.csv(df_Region_Race, "df_clean")
 
