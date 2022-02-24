@@ -1,0 +1,80 @@
+---
+title: "Imupatation Script"
+output: html_document
+---
+
+Load packages
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(mice)
+library(tidyverse)
+
+```
+
+load data and make a new df
+```{r}
+
+library(readr)
+df_clean <- read_csv("df_clean (2)")
+View(df_clean)
+
+df<- df_clean
+
+```
+
+identify where we have missing data & character variables
+```{r}
+summary(df)
+
+df<- df %>%
+  mutate(Race = as.factor(Race),
+         Region = as.factor(Region),
+         Income = as.factor(Income),
+         EDUC = as.factor(EDUC))
+
+summary(df)
+
+```
+
+use mice 
+
+```{r}
+
+df_imp <-mice(df, m=2, seed= 1)
+
+#m= how many times you are imputing
+#seed= where it starts from
+
+```
+
+remove problems 
+```{r}
+pred <- quickpred(df)
+
+#predict which variables are good predictors for imputing
+
+pred[,"...1"] <- 0
+
+df_imp<- mice(df, m= 2, seed=1, predictorMatrix = pred)
+
+
+```
+
+check
+```{r}
+summary(df_imp)
+
+complete(df_imp)
+
+summary(complete(df_imp))
+```
+
+save this file
+```{r}
+
+save(df_imp, file = "df_imp.rda")
+
+```
+
