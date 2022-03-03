@@ -193,18 +193,25 @@ knitr::opts_chunk$set(echo = TRUE)
 library(mice)
 
 ```
-Fix variable type (as.factor())
+Identify where there are missing variables & Fix variable type (as.factor())
 ```{r}
 df_asfactorg <- df_cleang %>%
-  mutate(Region = as.factor(Region),
+  mutate(EDUC_cont = ifelse(EDUC=="Primary",1,
+                         ifelse(EDUC=="Secondary",2,
+                                ifelse(EDUC=="Bachelors",3,
+                                       ifelse(EDUC=="Masters",4,
+                                              ifelse(EDUC=="Professional",5,0))))),
+    EDUC_cont = as.numeric(EDUC_cont),
          Race = as.factor(Race),
-         EDUC = as.factor(EDUC),
-         Gender = as.factor(Gender))
+         Region = as.factor(Region),
+         Gender = as.factor(Gender),
+         EDUC = as.factor(EDUC)    )     
+ 
 summary(df_asfactorg)
 ```
-Trying mice
+Trying mice M=# of times imputed
 ```{r}
-df_impg <- mice(df_asfactorg, m = 2, seed = 1)
+df_impg <- mice(df_asfactorg, m = 10, seed = 1)
 ```
 remove problems
 ```{r}
@@ -222,5 +229,53 @@ summary(complete(df_impg))
 ```
 Save this file
 ```{r}
-save(df_impg, file= "df_impg_clean.rda")
+save(df_impg, file= "df_impg.rda")
+```
+Load library of needs for Regression
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lme4)
+library(MuMIn)
+library(mitml)
+library(mice)
+library(miceadds)
+```
+Load the data, make complete dataset, and mitml
+```{r}
+load("~/ResEv Class Project/df_impg.rda")
+df <- complete(df_impg)
+df_mitml <- mids2mitml.list(df_impg)
+```
+Run models
+```{r}
+#mod_1 <- lm(EDUC_cont ~ 1, df)
+#mod_2 <- lm(EDUC_cont ~ 1 + Race, df)
+#mod_3 <- lm(EDUC_cont ~ 1 + Race + Region, df)
+#mod_4 <- lm(EDUC_cont ~ 1 + Race*Region, df)
+  
+mod1 <- with(df_mitml, lm(EDUC_cont ~ 1, df))
+mod2 <- with(df_mitml, lm(EDUC_cont ~ 1 + Race, df))
+mod3 <- with(df_mitml, lm(EDUC_cont ~ 1 + Gender, df))
+mod4 <- with(df_mitml, lm(EDUC_cont ~ 1 + Region,df))
+mod5 <- with(df_mitml, lm(EDUC_cont ~ 1 + Race + Region, df))
+mod6 <- with(df_mitml, lm(EDUC_cont ~ 1 + Gender + Region, df))
+mod7 <- with(df_mitml, lm(EDUC_cont ~ 1 + Race + Region + Gender, df))
+mod8 <- with(df_mitml, lm(EDUC_cont ~ 1 + Region + Race + Race*Region, df))
+mod9 <- with(df_mitml, lm(EDUC_cont ~ 1 + Gender + Region + Gender*Region, df))
+mod10 <- with(df_mitml, lm(EDUC_cont ~ 1 + Race + Gender + Region + Gender*Region + Race*Gender + Race*Region + Race*Region*Gender, df))
+```
+Check output
+```{r}
+
+testEstimates(mod1, extra.pars=TRUE)
+testEstimates(mod2, extra.pars=TRUE)
+testEstimates(mod3, extra.pars=TRUE)
+testEstimates(mod4, extra.pars=TRUE)
+testEstimates(mod5, extra.pars=TRUE)
+testEstimates(mod6, extra.pars=TRUE)
+testEstimates(mod7, extra.pars=TRUE)
+testEstimates(mod8, extra.pars=TRUE)
+testEstimates(mod9, extra.pars=TRUE)
+testEstimates(mod10, extra.pars=TRUE)
 ```
