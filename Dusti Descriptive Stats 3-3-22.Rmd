@@ -1,0 +1,64 @@
+---
+title: "Dusti Descriptive Stats 3-3-33"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+
+```
+
+```{r}
+
+
+library(readr)
+df <- read_csv("dfclean3-3.csv")
+View(dfclean3_3)
+
+summary(df)
+
+
+```
+
+```{r}
+
+dusti_desc_stat <- df %>% group_by(Race, Region, EDUC, Income, Gender, Income_cont) %>%
+  summarize(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(dusti_desc_stat, "dusti_desc_stat.csv")
+
+```
+Plot descriptive
+```{r}
+#ggplot(data, aes(x= , y=, color =)) +
+# geom_boxplot()
+df_educ$Educ <- factor(df_educ$Educ,levels = c("No_HS", "HS", "AA", "BA", "MA", "PhD"))
+
+ggplot(df_educ, aes(x=Race, y=Salary, color = Educ)) +
+  geom_boxplot() +
+  scale_y_continuous(trans='log2', limits=c(1000,2000000)) #+
+  #facet_wrap(~Educ)
+```
+
+
+```{r}
+ggsave("myplot.png", width=8, height =3)
+#  scale_y_continuous(trans='log2', limits=c(1000,2000000))
+# save this for after first plot df$Educ <- factor(df$Educ,levels = c("No_HS", "HS", "AA", "BA", "MA", "PhD"))
+
+# +facet_wrap(~race)
+  #facet_wrap(~Educ)
+#facet_wrap(~Gender)
+#ggsave("myplot.png", width=8, height=3)
+
+```
+
+
+

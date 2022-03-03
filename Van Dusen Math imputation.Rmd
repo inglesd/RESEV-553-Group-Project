@@ -1,0 +1,166 @@
+---
+title: "Math imputation"
+output: html_document
+---
+
+Load packages we need
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mice)
+library(tidyverse)
+```
+
+Load data & make new df of it
+```{r}
+cleaned_data <- readRDS("~/RESEV553/Math analysis/cleaned_data.rds")
+
+```
+
+identify where we have missing data & character variables
+```{r}
+
+```
+
+Fix variable type (as.factor())
+```{r}
+
+
+
+
+```
+
+df <- df %>%
+  mutate(S_Teacher = as.factor(S_Teacher),
+         F_Teacher = as.factor(F_Teacher),
+         School = as.factor(School),
+         State = as.factor(State),
+         Race = as.factor(Race),
+         ESL = as.factor(ESL),
+         F_Per = as.factor(F_Per),
+         S_Per = as.factor(S_Per),
+         Gender = as.factor(Gender),
+         IEP = as.factor(IEP),
+         Lunch = as.factor(Lunch))
+
+Simplest thing is to just let mice do it's thing
+```{r}
+
+
+
+```
+Remove problems
+```{r}
+
+```
+
+
+
+Check what happened
+```{r}
+
+```
+
+Fix up any data afterwards
+```{r}
+
+
+# MIdata<-mids2mitml.list(df_imp) #converts file type
+# thing <- list()
+# for (i in 1:10){
+#   temp <- MIdata[[i]]
+#   temp <- temp %>%
+#     merge(cleaned_data$ID)
+#   thing[[i]] <- temp
+#   }
+# MIdata <- as.mitml.list(thing)
+```
+
+
+Save the file
+```{r}
+
+```
+
+
+
+Load packages we need
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mice)
+library(tidyverse)
+```
+
+Load data & make new df of it
+```{r}
+cleaned_data <- readRDS("~/RESEV553/Math analysis/cleaned_data.rds")
+
+
+#df <- cleaned_data
+```
+
+identify where we have missing data & character variables
+```{r}
+summary(df)
+```
+
+Create indicator variables (will need this for future stuff)
+```{r}
+
+df <- df %>%
+  mutate(S_Teacher = as.factor(S_Teacher),
+         F_Teacher = as.factor(F_Teacher),
+         School = as.factor(School),
+         State = as.factor(State),
+         Race = as.factor(Race),
+         ESL = as.factor(ESL),
+         F_Per = as.factor(F_Per),
+         S_Per = as.factor(S_Per),
+         Gender = as.factor(Gender),
+         IEP = as.factor(IEP),
+         Lunch = as.factor(Lunch),
+        na_count = apply(is.na(df), 1, sum))# %>%
+  # select(-ID)
+
+
+```
+
+
+
+Simplest thing is to just let mice do it's thing
+```{r}
+df_imp <- mice(df, m=2, seed = 1)
+```
+Remove problems
+```{r}
+pred <- quickpred(df)
+pred[,"ID"] <- 0
+df_imp <- mice(df, m=2, seed = 1, predictorMatrix = pred)
+```
+
+
+
+Check what happened
+```{r}
+summary(df_imp)
+complete(df_imp)
+summary(complete(df_imp))
+```
+
+Fix up any data afterwards
+```{r}
+MIdata<-mids2mitml.list(df_imp) #converts file type
+thing <- list()
+for (i in 1:10){
+  temp <- MIdata[[i]]
+  temp <- temp %>%
+    merge(cleaned_data$ID)
+  thing[[i]] <- temp
+  }
+MIdata <- as.mitml.list(thing)
+```
+
+
+Save the file
+```{r}
+save(df_imp, file="df_imp.rds")
+```
