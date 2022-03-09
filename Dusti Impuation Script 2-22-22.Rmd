@@ -58,7 +58,7 @@ pred <- quickpred(df)
 
 pred[,"...1"] <- 0
 
-df_imp<- mice(df, m= 2, seed=1, predictorMatrix = pred)
+df_imp<- mice(df, m= 10, seed=1, predictorMatrix = pred)
 
 
 ```
@@ -75,7 +75,7 @@ summary(complete(df_imp))
 save this file
 ```{r}
 
-save(df_imp, file = "df_imp3-8.rda")
+save(df_imp, file = "df_imp_3_8.rda")
 
 #write.csv(df_imp, "df_imp3-8.csv") does not work for imputed?
 

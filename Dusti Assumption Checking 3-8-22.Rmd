@@ -7,22 +7,89 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+run packages
+```{r}
+library(lme4)
+library(tidyverse)
+library(mitml)
+library(mice)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
 ```
 
-## Including Plots
+load data 
+```{r}
 
-You can also embed plots, for example:
+load("~/GitHub/RESEV-553-Group-Project/df_imp3-8.rda")
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+df<- df_imp
+
+df_mitml<- mids2mitml.list(df)
+
+# df_comp <- complete(df) #use this line if you're working with imputed data
+
+
+
+View(df_mitml[[2]])
+
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+list terms in df
+```{r}
+
+#list terms in the df
+ls(df_mitml[[2]])
+
+```
+
+fix variables with spaces (R doesn't like spaces in things)
+```{r}
+# df<- df %>% 
+#   rename(Income_cont = "Income_cont",
+#          Educ = "EDUC")
+
+#ls(df_comp)
+```
+
+run model
+```{r}
+
+#Not MI version
+#mod_1<- lm(EDUC ~ 1 + Gender + Race, df)
+
+#MI version
+mod_1_mi <- with(df_comp, lm(EDUC_cont ~ 1 + Gender + Region))
+
+```
+
+```{r}
+#not imputed
+# plot(mod_1)
+
+
+#imputed 
+plot(mod_1_mi[[2]])
+
+summary(mod_1_mi)
+
+```
+
+Make HLM 
+```{r}
+#see what categories exist
+unique(df_comp$Region)
+
+#turn the categories into numbers
+df_mitml<- df_mitml %>% 
+  mutate(Region_hlm = ifelse (Region == "Midwest", 1,
+                              ifelse (Region == "South", 2,
+                                      ifelse (Region == "West", 3, 
+                                              ifelse (Region == "Northeast", 4, 0)))))
+
+
+#run model
+
+mod_1_hlm <- lm(EDUC_cont ~ 1 + Gender + Race + (1|Region_hlm))
+
+summary(mod_1_hlm)
+```
