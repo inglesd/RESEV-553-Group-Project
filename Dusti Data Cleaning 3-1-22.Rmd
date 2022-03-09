@@ -77,7 +77,8 @@ df<- df %>%
          Race = as.factor(Race)
          Region = as.factor(Region)
          Gender = as.factor(Gender)
-         EDUC = as.factor(EDUC)       
+         EDUC = as.factor(EDUC)
+         Income_cont = as.numeric(Income_cont)
  
 ```
 
@@ -125,7 +126,7 @@ summary(df)
 save
 ```{r}
 
-write.csv(df, "dfclean3-3.csv")
+write.csv(df, "dfclean3-8.csv")
 ```
 
 

@@ -15,12 +15,11 @@ library(tidyverse)
 
 load data and make a new df
 ```{r}
-
 library(readr)
-df_clean <- read_csv("df_clean (2)")
-View(df_clean)
+dfclean3_8 <- read_csv("dfclean3-8.csv")
+View(dfclean3_8)
 
-df<- df_clean
+df<- dfclean3_8
 
 ```
 
@@ -32,7 +31,9 @@ df<- df %>%
   mutate(Race = as.factor(Race),
          Region = as.factor(Region),
          Income = as.factor(Income),
-         EDUC = as.factor(EDUC))
+         EDUC = as.factor(EDUC),
+         EDUC_cont = as.numeric(EDUC_cont),
+         Income_cont = as.numeric(Income_cont))
 
 summary(df)
 
@@ -74,7 +75,10 @@ summary(complete(df_imp))
 save this file
 ```{r}
 
-save(df_imp, file = "df_imp.rda")
+save(df_imp, file = "df_imp3-8.rda")
+
+#write.csv(df_imp, "df_imp3-8.csv") does not work for imputed?
+
 
 ```
 
