@@ -77,8 +77,5 @@ save this file
 
 save(df_imp, file = "df_imp_3_8.rda")
 
-#write.csv(df_imp, "df_imp3-8.csv") does not work for imputed?
-
-
 ```
 

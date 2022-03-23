@@ -1,0 +1,60 @@
+---
+title: "RESEV 553 3-22-22"
+output: html_document
+---
+Model specification
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(mice)
+library(lme4)
+library(AICcmodavg)
+
+```
+load your data
+
+```{r}
+load("~/GitHub/RESEV-553-Group-Project/df_imp_3_8.rda")
+
+#use for data that is not MI
+#df<- df_imp
+
+#use complete() for MI data
+df<- complete(df_imp)
+```
+
+Run models
+```{r}
+
+mod1 <- lm(EDUC_cont ~ 1 + Race + Region + Gender, df)
+
+mod2 <- lm(EDUC_cont ~ 1 +  Race * Gender + Gender * Region, df)
+
+mod3 <- lm(EDUC_cont ~1 + Race + Gender * Region, df)
+
+mod4 <- lm(EDUC_cont ~1 + Region + Race * Gender, df)
+
+```
+
+
+See model AIC scores
+```{r}
+
+#define list of models (models<- list())
+
+models <- list (mod1, mod2, mod3, mod4)
+#specify model names (mod.names<-c("",""))
+
+mod.names <- c("mod1", "mod2", "mod3", "mod4")
+
+#calculate AIC of each model (aictab(cand.set= models, modnames = mod.names))
+
+aictab(cand.set = models, modnames = mod.names)
+
+
+
+```
+
