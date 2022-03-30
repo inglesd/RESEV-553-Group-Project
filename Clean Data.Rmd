@@ -1,0 +1,142 @@
+---
+title: "Clean Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+library(haven)
+# prgusap1_puf <- read_sas("GitHub/RESEV-553-Group-Project/prgusap1_puf.sas7bdat", 
+#     NULL)
+# View(prgusap1_puf)
+
+
+```
+
+```{r}
+
+df<- prgusap1_puf
+
+
+df <- df%>%
+  select(RACETHN_5CAT, REGION_US, EDCAT8, J_Q09USX, A_N01_T) %>%
+  rename(Race=RACETHN_5CAT, Region=REGION_US, EDUC=EDCAT8, Income=J_Q09USX,
+         Gender= A_N01_T)
+
+```
+
+```{r}
+df <- df %>%
+  mutate(Race = ifelse(Race==1, "Hispanic",
+                       ifelse(Race==2, "White",
+                              ifelse(Race==3, "Black",
+                                     ifelse(Race==4, "Asian/Pacific Islander",
+                                            ifelse(Race==6, "Other", "Not Stated" ))))))
+                     
+
+```
+
+```{r}
+
+df <- df %>%
+  mutate(Region = ifelse(Region==1, "Northeast",
+                         ifelse(Region==2, "Midwest",
+                                ifelse(Region==3, "South",
+                                       ifelse(Region==4, "West","Other")))))
+
+```
+Change name of Education Variables
+```{r}
+df <- df %>%
+  mutate(EDUC = ifelse(EDUC==1 | EDUC==2, "Primary",
+                       ifelse(EDUC==3 | EDUC==4, "Secondary",
+                              ifelse(EDUC==6, "Bachelors",
+                                     ifelse(EDUC==7, "Masters",
+                                            ifelse(EDUC==5 | EDUC==8, "Professional", "Other"))))))
+                                                   
+```
+
+make education variable continuous 
+```{r}
+
+df<- df %>%
+  mutate(EDUC_cont = ifelse(EDUC== "Primary", 1,
+                         ifelse(EDUC== "Secondary", 2,
+                                ifelse(EDUC== "Bachelors", 3,
+                                       ifelse(EDUC== "Masters", 4,
+                                              ifelse(EDUC== "Professional", 5,0))))))
+
+
+```
+
+```{r}
+df <- df %>%
+  mutate(Gender = ifelse(Gender==1, "Male",
+                       ifelse(Gender==2, "Female", "Other")))
+
+```
+
+```{r}
+
+df <- df %>%
+  mutate(Income_cont = ifelse(Income== 1, "5000",
+                         ifelse(Income== 2, "10000",
+                         ifelse(Income== 3, "25000", 
+                         ifelse(Income== 4, "35000",
+                         ifelse(Income== 5, "45000",
+                          ifelse(Income== 6, "55000",
+                          ifelse(Income== 7, "67500",
+                          ifelse(Income== 8, "87500",
+                          ifelse(Income== 9, "125000",
+                          ifelse(Income== 10, "200000", 
+                          ifelse(Income== 11, "0", "Other")))))))))))) 
+
+```
+
+
+```{r}
+
+df <- df %>%
+  mutate(Income = ifelse(Income== 1, "1-9,999",
+                  ifelse(Income== 2, "10,000-19,999",
+                  ifelse(Income== 3, "20,000- 29,999", 
+                  ifelse(Income== 4, "30,000-39,999",
+                   ifelse(Income== 5, "40,000- 49,999", 
+                  ifelse(Income== 6, "40,000-59,999",
+                   ifelse(Income== 7, "60,000-74,999",
+                   ifelse(Income== 8, "75,000-99,999",
+                    ifelse(Income== 9, "100,000-149,999",
+                    ifelse(Income== 10, "150,000 +", 
+                    ifelse(Income== 11, "0", "Other" ))))))))))))
+
+         
+```
+
+
+```{r}
+
+df$Income_cont <- as.numeric(df$Income_cont)
+df$EDUC_cont <- as.numeric(df$EDUC_cont)
+df$Region <- as.factor(df$Region)
+df$Income <- as.factor(df$Income)
+df$EDUC <- as.factor(df$EDUC)
+df$Gender <- as.factor(df$Gender)
+df$Race <- as.factor(df$Race)
+
+summary(df)
+
+```
+
+```{r}
+
+write.csv(df, "cleandata.csv")
+
+```
+

@@ -1,6 +1,4 @@
 .Rproj.user
 .Rhistory
-.Rdata
-.httr-oauth
-.DS_Store
-2020222_codebook.pdf
+.RData
+.Ruserdata
