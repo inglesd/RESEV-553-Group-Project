@@ -1,0 +1,259 @@
+---
+title: "In Class Example - Data Cleaning"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+```
+Open and rename Data
+```{r}
+library(haven)
+prgusap1_puf <- read_sas("prgusap1_puf.sas7bdat", 
+    NULL)
+View(prgusap1_puf)
+df <- prgusap1_puf
+```
+Cut out Extra variables and rename columns
+```{r}
+#select(RACETHN_5CAT, REGION_US, EDCAT8, J_Q09USX)
+#rename(Race5=RACETHN_5CAT, Region=REGION_US, EDU8=EDCAT8, Income=J_Q09USX)
+df_small <- df%>%
+  select(RACETHN_5CAT, REGION_US, EDCAT8, J_Q09USX) %>%
+  rename(Race=RACETHN_5CAT, Region=REGION_US, EDUC=EDCAT8, Income=J_Q09USX)
+
+```
+
+Change name of Race Variables
+```{r}
+df_Race <- df_small %>%
+  mutate(Race = ifelse(Race==1, "Hispanic",
+                       ifelse(Race==2, "White",
+                              ifelse(Race==3, "Black",
+                                     ifelse(Race==4, "Asian/Pacific Islander",
+                                            ifelse(Race==6, "Other", "Not Stated" ))))))
+                                                   
+```
+Change name of Region Variables
+```{r}
+df_Region_Race <- df_Race %>%
+  mutate(Region = ifelse(Region== 1, "Northeast",
+                         ifelse(Region== 2, "Midwest",
+                                ifelse(Region== 3, "South",
+                                       ifelse(Region== 4, "West", "Other Region")))))
+```
+Change name of Education Variables
+```{r}
+df_Ed_Reg_Race <- df_Region_Race %>%
+  mutate(EDUC = ifelse(EDUC==1 | EDUC==2, "Primary",
+                       ifelse(EDUC==3 | EDUC==4, "Secondary",
+                              ifelse(EDUC==6, "Bachelors",
+                                     ifelse(EDUC==7, "Masters",
+                                            ifelse(EDUC==5 | EDUC==8, "Professional", "Other"))))))
+                                                   
+```
+Change name of Income Variable
+```{r}
+df_ALL <- df_Ed_Reg_Race %>%
+  mutate(Income = ifelse(Income== 1 | Income== 2, "1-19,999",
+                         ifelse(Income== 3 | Income== 4, "20,000-39,999",
+                                ifelse(Income== 5 | Income== 6, "40,000-59,999",
+                                       ifelse(Income== 7, "60,000-74,999",
+                                              ifelse(Income== 8, "75,000-99,999",
+                                                     ifelse(Income== 9, "100,000-149,999",
+                                                            ifelse(Income== 10, "150,000 +", "Other" ))))))))
+                                                                   #ifelse(Income== 11 | Income== is.na(NA), "Not Stated", "Other Income"))))))))) 
+```
+Normal Descriptive Stats
+```{r}
+
+desc_stat_continuous <- df_ALL %>% group_by(Region,Income,Race,EDUC) %>%
+  summarize(N=n(),
+             mean=mean(Income),
+             SD=sd(Income))
+
+ write.csv(desc_state, "desc_stat_continuous.csv")
+```
+Descriptive Statistics Counts and Percent All
+```{r}
+desc_stat_ALL <- df_ALL %>%
+  group_by(Region, Income, EDUC, Race)%>%
+  summarize(N=n())%>%
+  ungroup()%>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+  
+write.csv(desc_stat_ALL, "desc_stat_ALL.csv")
+desc_stat_ALL <- as.data.frame(desc_stat_ALL)
+```
+
+
+Descriptive Statistics for plot for Income by Region
+```{r}
+desc_stat_Income <- df_ALL %>% group_by(Region,Income) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_Income, "desc_stat_Income.csv")
+desc_stat_Income <- as.data.frame(desc_stat_Income)
+```
+
+
+Plot of Income by region
+```{r}
+desc_stat_Income$Income <- factor(desc_stat_Income$Income,levels = c( "1-19,999", "20,000-39,999", "40,000-59,999", "60,000-74,999", "75,000-99,999", "100,000-149,999", "150,000 +", "Not Stated"))
+
+ggplot(desc_stat_Income, aes(x = Region, y=perc, fill=Income)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+
+```
+Descriptive Statistics for Plot of Race by Region
+```{r}
+desc_stat_Race <- df_ALL %>% group_by(Region,Race) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_Race, "desc_stat_Race.csv")
+desc_stat_Race <- as.data.frame(desc_stat_Race)
+```
+
+Plot of Race by Region
+```{r}
+ggplot(desc_stat_Race, aes(x = Region, y=perc, fill=Race)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+```
+Descriptive Statistics of Education by Region
+```{r}
+desc_stat_EDUC <- df_ALL %>% group_by(EDUC, Region) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_EDUC, "desc_stat_EDUC.csv")
+desc_stat_EDUC <- as.data.frame(desc_stat_EDUC)
+```
+
+Plot of Education by Region
+```{r}
+desc_stat_EDUC$EDUC <- factor(desc_stat_EDUC$EDUC, levels =c("Primary", "Secondary", "Bachelors", "Masters", "Professional", "Other"))
+
+ggplot(desc_stat_EDUC, aes(x = Region, y=perc, fill=EDUC)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+```
+
+Take out NA in all but Region
+```{r}
+df_ALL_clean <- df_ALL %>%
+  filter(!row_number() %in% c(29, 45, 54, 102, 112, 131, 139, 140, 196, 218, 231, 248, 249, 266, 380, 398, 412, 419, 440, 449, 533, 542, 582, 586, 590, 597, 615, 624, 636, 660, 675, 684, 711, 747, 755, 766, 820, 825, 832, 839, 861, 891, 897, 940, 942, 951, 959, 964, 1003, 1046, 1053, 1057, 1077, 1080, 1097, 1118, 1119, 1129, 1142, 1155, 1270, 1284, 1287, 1288, 1303, 1345, 1355, 1367, 1404, 1408, 1422, 1438, 1474, 1484, 1577, 1593, 1622, 1634, 1637, 1640, 1664, 1665, 1676, 1710, 1712, 1739, 1751, 1767, 1813, 1862, 1864, 1900, 1931, 1942, 1967, 1975, 1996, 1999, 2007, 2027, 2043, 2058, 2070, 2071, 2083, 2086, 2093, 2101, 2102, 2123, 2133, 2139, 2183, 2184, 2212, 2216, 2238, 2242, 2258, 2266, 2278, 2318, 2358, 2372, 2374, 2384, 2479, 2483, 2487, 2490, 2493, 2546, 2550, 2554, 2558, 2587, 2598, 2607, 2618, 2656, 2689, 2694, 2737, 2755, 2771, 2790, 2816, 2839, 2878, 2880, 2919, 2925, 2935, 2952, 2966, 2977, 2979, 3011, 3114, 3144, 3161, 3164, 3176, 3224, 3227, 3235, 3278, 3284, 3493, 3497, 3563, 3568, 3576, 3602, 3615, 3627, 3634, 3644, 3653, 3655))
+
+write.csv(df_ALL_clean, "df_ALL_clean.csv")
+```
+Descriptive Statistics for plot for Income by Region w/o 3 NA obs
+```{r}
+desc_stat_Income_clean <- df_ALL_clean %>% group_by(Region,Income) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_Income_clean, "desc_stat_Income_clean.csv")
+desc_stat_Income_clean <- as.data.frame(desc_stat_Income_clean)
+```
+Plot of Income by region w/o 3 NA obs
+```{r}
+desc_stat_Income_clean$Income <- factor(desc_stat_Income_clean$Income,levels = c( "1-19,999", "20,000-39,999", "40,000-59,999", "60,000-74,999", "75,000-99,999", "100,000-149,999", "150,000 +", "Not Stated"))
+
+ggplot(desc_stat_Income_clean, aes(x = Region, y=perc, fill=Income)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+
+```
+Descriptive Statistics for plot of Race by Region w/o 3NA obs
+```{r}
+desc_stat_Race_clean <- df_ALL_clean %>% group_by(Region,Race) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_Race_clean, "desc_stat_Race_clean.csv")
+desc_stat_Race_clean <- as.data.frame(desc_stat_Race_clean)
+```
+Plot of Race by Region w/o 3 NA obs
+```{r}
+ggplot(desc_stat_Race_clean, aes(x = Region, y=perc, fill=Race)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+```
+Descriptive Statistics of Education by Region w/o 3 NA obs
+```{r}
+desc_stat_EDUC_clean <- df_ALL_clean %>% group_by(EDUC, Region) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_EDUC_clean, "desc_stat_EDUC_clean.csv")
+desc_stat_EDUC_clean <- as.data.frame(desc_stat_EDUC_clean)
+```
+
+Plot of Education by Region
+```{r}
+desc_stat_EDUC_clean$EDUC <- factor(desc_stat_EDUC_clean$EDUC, levels =c("Primary", "Secondary", "Bachelors", "Masters", "Professional", "Other"))
+
+ggplot(desc_stat_EDUC_clean, aes(x = Region, y=perc, fill=EDUC)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+```
+Load Packages We Need
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mice)
+```
+Load Data and make new df of it
+```{r}
+library(readr)
+df_ALL_clean <- read_csv("df_ALL_clean.csv")
+View(df_ALL_clean)
+```
+Fix variable type (as.factor())
+```{r}
+df_ALL_clean2 <- df_ALL_clean %>%
+  mutate(Region = as.factor(Region),
+         Race = as.factor(Race),
+         EDUC = as.factor(EDUC),
+         Income = as.factor(Income))
+summary(df_ALL_clean2)
+```
+Trying mice
+```{r}
+df_imp <- mice(df_ALL_clean2, m = 2, seed = 1)
+```
+remove problems
+```{r}
+pred <- quickpred(df_ALL_clean2)
+pred[,"...1"] <- 0
+df_imp <- mice(df_ALL_clean2, m= 2, seed= 1, predictorMatrix = pred)
+```
+check
+```{r}
+summary(df_imp)
+
+complete(df_imp)
+
+summary(complete(df_imp))
+```
+Save this file
+```{r}
+save(df_imp, file= "df_imp_clean.rda")
+```

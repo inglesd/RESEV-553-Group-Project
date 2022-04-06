@@ -1,0 +1,57 @@
+---
+title: "Check Assumptions"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(tidyverse)
+library(lme4)
+library(MuMIn)
+library(mitml)
+library(mice)
+library(miceadds)
+
+
+```
+
+```{r}
+load("~/GitHub/RESEV-553-Group-Project/cleanimputeddata.rda")
+
+df_mitml <- mids2mitml.list(df_imp)
+
+```
+
+```{r}
+
+mod4 <- with(df_mitml, lmer(Income_cont ~1 + EDUC + Race * Gender + (1| Region_hlm)))
+
+```
+
+```{r}
+summary(mod4)
+
+testEstimates(mod4, extra.pars = TRUE)
+
+```
+
+```{r}
+
+plot(mod4[[2]])
+
+```
+```{r}
+
+save(mod4, file = "mod4.rda")
+output <- testEstimates(mod4, extra.pars = TRUE)
+estimates <- output [["estimates"]]
+write.csv(estimates, file = "estimates.csv")
+
+
+```
+

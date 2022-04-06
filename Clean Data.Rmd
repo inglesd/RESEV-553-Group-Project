@@ -13,6 +13,8 @@ library(tidyverse)
 
 ```{r}
 library(haven)
+
+
 # prgusap1_puf <- read_sas("GitHub/RESEV-553-Group-Project/prgusap1_puf.sas7bdat", 
 #     NULL)
 # View(prgusap1_puf)
@@ -56,22 +58,23 @@ Change name of Education Variables
 ```{r}
 df <- df %>%
   mutate(EDUC = ifelse(EDUC==1 | EDUC==2, "Primary",
-                       ifelse(EDUC==3 | EDUC==4, "Secondary",
+                       ifelse(EDUC==3 , "Secondary",
+                             ifelse(EDUC==4|EDUC==5 , "Associates",
                               ifelse(EDUC==6, "Bachelors",
                                      ifelse(EDUC==7, "Masters",
-                                            ifelse(EDUC==5 | EDUC==8, "Professional", "Other"))))))
+                                            ifelse(EDUC==8, "PhD", "Other")))))))
                                                    
 ```
 
 make education variable continuous 
 ```{r}
 
-df<- df %>%
-  mutate(EDUC_cont = ifelse(EDUC== "Primary", 1,
-                         ifelse(EDUC== "Secondary", 2,
-                                ifelse(EDUC== "Bachelors", 3,
-                                       ifelse(EDUC== "Masters", 4,
-                                              ifelse(EDUC== "Professional", 5,0))))))
+# df<- df %>%
+#   mutate(EDUC_cont = ifelse(EDUC== "Primary", 1,
+#                          ifelse(EDUC== "Secondary", 2,
+#                                 ifelse(EDUC== "Bachelors", 3,
+#                                        ifelse(EDUC== "Masters", 4,
+#                                               ifelse(EDUC== "PhD", 5,0))))))
 
 
 ```
@@ -123,7 +126,7 @@ df <- df %>%
 ```{r}
 
 df$Income_cont <- as.numeric(df$Income_cont)
-df$EDUC_cont <- as.numeric(df$EDUC_cont)
+# df$EDUC_cont <- as.numeric(df$EDUC_cont)
 df$Region <- as.factor(df$Region)
 df$Income <- as.factor(df$Income)
 df$EDUC <- as.factor(df$EDUC)
@@ -137,6 +140,7 @@ summary(df)
 ```{r}
 
 write.csv(df, "cleandata.csv")
+
 
 ```
 

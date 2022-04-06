@@ -1,0 +1,77 @@
+---
+title: "Missing Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(mice)
+
+```
+
+```{r}
+
+library(readr)
+cleandata <- read_csv("cleandata.csv")
+View(cleandata)
+
+df <- cleandata
+
+```
+
+```{r}
+df$Race <-as.factor(df$Race)
+df$Gender <-as.factor(df$Gender)
+df$Region <-as.factor(df$Region)
+df$EDUC <-as.factor(df$EDUC)
+df$Income <-as.factor(df$Income)
+
+
+df <- df %>%
+  mutate(Region_hlm = ifelse(Region== "Northeast", 1, 
+                      ifelse(Region== "Midwest", 2,
+                      ifelse(Region== "South", 3,
+                      ifelse(Region== "West", 4, 0)))))
+
+
+```
+
+
+```{r}
+
+df_imp <- mice(df, m=10, seed=1)
+
+
+
+```
+
+```{r}
+
+pred <- quickpred(df)
+
+pred[,"...1"] <- 0
+
+
+df_imp <- mice(df, m= 10, seed=1, predictorMatrix = pred)
+
+```
+
+```{r}
+
+summary(df_imp)
+
+complete(df_imp)
+
+summary(complete(df_imp))
+
+```
+
+```{r}
+
+save(df_imp, file = "cleanimputeddata.rda")
+```
+
