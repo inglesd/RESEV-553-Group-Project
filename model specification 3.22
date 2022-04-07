@@ -1,0 +1,44 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(mice)
+library(lme4)
+library(AICcmodavg)
+```
+
+```{r}
+#load your data
+load("~/ResEv Class Project/df.rda")
+#complete for MI
+df <- complete(df)
+```
+Run models
+```{r}
+mod_0 <- lm(EDUC_cont ~ 1, df)
+mod_1 <- lm(EDUC_cont ~ 1 + Race + Region + Gender, df)
+mod_2 <- lm(EDUC_cont ~ 1 + Gender + Region + Race + Race*Region, df)
+mod_3 <- lm(EDUC_cont ~ 1 + Region + Race + Race*Region, df)
+mod_4 <- lm(EDUC_cont ~ 1 + Gender + Region + Gender*Region, df)
+mod_5 <- lm(EDUC_cont ~ 1 + Race + Gender + Region + Gender*Region, df)
+mod_6 <- lm(EDUC_cont ~ 1 + Race + Gender + Region + Race*Gender, df)
+mod_7 <- lm(EDUC_cont ~ 1 + Race + Gender + Region + Race*Gender + Gender*Region, df)
+mod_8 <- lm(EDUC_cont ~ 1 + Race + Gender + Region + Gender*Region + Race*Gender + Race*Region, df)
+mod_9 <- lm(EDUC_cont ~ 1 + Race + Gender + Region + Gender*Region + Race*Gender + Race*Region + Race*Region*Gender, df)
+
+```
+See Model AIC scores
+```{r}
+#define list of models
+models <- list(mod_0, mod_1, mod_2, mod_3, mod_4, mod_5, mod_6, mod_7, mod_8, mod_9, mod_10)
+#specify model names
+mod.names <- c("mod_0","mod_1","mod_2","mod_3","mod_4","mod_5","mod_6", "mod_7", "mod_8", "mod_9", "mod_10")
+#calculate AIC of each model
+aictab(cand.set = models, modnames = mod.names)
+```
+

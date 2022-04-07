@@ -1,19 +1,16 @@
 ---
-title: "Trying Something Else"
+title: "NewNew ResEv File"
 output: html_document
+date: '2022-03-30'
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(haven)
-library(mice)
-library(lme4)
-library(MuMIn)
-library(mitml)
-library(miceadds)
-library(AICcmodavg)
 ```
+
 Open and rename Data
 ```{r}
 prgusap1_puf <- read_sas("prgusap1_puf.sas7bdat")
@@ -51,11 +48,16 @@ Change name of Education Variables
 ```{r}
 df_Ed_Reg_Raceg <- df_Region_Raceg %>%
   mutate(EDUC = ifelse(EDUC==1 | EDUC==2, "Primary",
-                       ifelse(EDUC==3, "Secondary",
-                              ifelse(EDUC ==4 | EDUC==5, "Professional",
+                       ifelse(EDUC==3 | EDUC==4, "Secondary",
                               ifelse(EDUC==6, "Bachelors",
                                      ifelse(EDUC==7, "Masters",
-                                             ifelse(EDUC==8, "Research", "Other")))))))
+                                            ifelse(EDUC==5 | EDUC==8, "Professional", "Other"))))))
+df_Ed_Reg_Raceg <- df_Region_Raceg %>%
+   mutate(EDUC_cont = ifelse(EDUC== "Primary", 1,
+                         ifelse(EDUC== "Secondary", 2,
+                                ifelse(EDUC== "Bachelors", 3,
+                                       ifelse(EDUC== "Masters", 4,
+                                              ifelse(EDUC== "Professional", 5,0))))))
                                                    
 ```
 Change name of Gender Variables
@@ -79,9 +81,6 @@ df_5VAR <- df_4VAR %>%
                           ifelse(Income== 9, "125000",
                           ifelse(Income== 10, "200000", 
                           ifelse(Income== 11, "0", "Other")))))))))))) 
-```
-Mutate
-```{r}
 df <- df_5VAR %>%
   mutate(Income = ifelse(Income== 1, "1-9,999",
                   ifelse(Income== 2, "10,000-19,999",
@@ -94,36 +93,29 @@ df <- df_5VAR %>%
                     ifelse(Income== 9, "100,000-149,999",
                     ifelse(Income== 10, "150,000 +", 
                     ifelse(Income== 11, "0", "Other" ))))))))))))
-         
 ```
 
-```{r}
-df <- df %>%
-  mutate(Region_hlm = ifelse(Region == "Northeast", 1,
-                           ifelse(Region== "Midwest", 2,
-                                  ifelse(Region == "South", 3,
-                                         ifelse(Region== "West", 4, "Other")))))
+Load Packages We Need
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mice)
+
 ```
-
-Identify where there are missing variables & Fix variable type (as.factor())
 ```{r}
-
-        
 df$Income_cont <- as.numeric(df$Income_cont)
-df$Region_hlm <- as.numeric(df$Region_hlm)
-df$Region <- as.factor(df$Region)
+df$EDUC_cont <- as.numeric(df$EDUC_cont)
+df$Region <- as.numeric(df$Region)
 df$Income <- as.factor(df$Income)
 df$EDUC <- as.factor(df$EDUC)
 df$Gender <- as.factor(df$Gender)
 df$Race <- as.factor(df$Race)
 
 summary(df)
-
 ```
-
-Trying mice M=# of times imputed
 ```{r}
-df_imp <- mice(df, m = 10, seed = 1)
+#Trying mice M=# of times imputed
+
+df_impg <- mice(df, m = 10, seed = 1)
 ```
 remove problems
 ```{r}
@@ -133,86 +125,26 @@ df_impg <- mice(df_asfactorg, m= 2, seed= 1, predictorMatrix = pred)
 ```
 check
 ```{r}
-summary(df_imp)
+summary(df_impg)
 
-complete(df_imp)
+complete(df_impg)
 
-summary(complete(df_imp))
+summary(complete(df_impg))
 ```
-Save this file
-```{r}
-save(df_imp, file= "df_imp.rda")
-```
-Load the data, make complete dataset, and mitml
-```{r}
-load("~/ResEv Class Project/df_imp.rda")
-df <- complete(df_imp)
-df_mitml <- mids2mitml.list(df_imp)
-save(df, file= "df.rda")
-```
-```{r}
-library(mice)
+Load library of needs for Regression
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 library(lme4)
-library(AICcmodavg)
+library(MuMIn)
+library(mitml)
+library(mice)
+library(miceadds)
 ```
+Make it a mitml
 ```{r}
-#load your data
-load("~/ResEv Class Project/df.rda")
-#complete for MI
-df <- complete(df)
+df2 <- complete(df_impg)
+df_mitml <- mids2mitml.list(df_impg)
+save(df2, file= "df2.rda")
 ```
-```{r}
-#run models
-mod1 <- with(df_mitml, lm(Income_cont ~ 1 + Race + Region + Gender + EDUC, df))
-mod2 <- with(df_mitml, lm(Income_cont ~ 1 + Race*Gender + Region + EDUC, df))
-mod3 <- with(df_mitml, lm(Income_cont ~ 1 + Race*Gender*Region + EDUC, df))
-mod4 <- with(df_mitml, lm(Income_cont ~ 1 + Race*Region + Gender + EDUC, df))
-mod5 <- with(df_mitml, lm(Income_cont ~ 1 + Gender*Region + Race + EDUC, df))
-mod6 <- with(df_mitml, lm(Income_cont ~ 1 + Region*EDUC + Race + Gender, df))
-mod7 <- with(df_mitml, lm(Income_cont ~ 1 + Region*EDUC + Race*Gender, df))
-mod8 <- with(df_mitml, lm(Income_cont ~ 1 + Region*EDUC*Race*Gender, df))
 
-summary(mod1)
-```
-```{r}
-#See AIC scores
-#define list of models
-models <- list(mod1, mod2, mod3, mod4, mod5, mod6, mod7, mod8)
-#specify model names
-mod.names <- c("mod1","mod2","mod3","mod4","mod5","mod6","mod7","mod8")
-
-#calculate AIC of each model
-aictab(cand.set = models, modnames = mod.names)
-
-```
-Run models
-```{r}
-#mod_1 <- lm(EDUC_cont ~ 1, df)
-#mod_2 <- lm(EDUC_cont ~ 1 + Race, df)
-#mod_3 <- lm(EDUC_cont ~ 1 + Race + Region, df)
-#mod_4 <- lm(EDUC_cont ~ 1 + Race*Region, df)
-  
-
-mod1 <- with(df_mitml, lm(Income_cont ~ 1 + Race + Region + Gender + EDUC, df))
-mod2 <- with(df_mitml, lm(Income_cont ~ 1 + Race*Gender + Region + EDUC, df))
-mod3 <- with(df_mitml, lm(Income_cont ~ 1 + Race*Gender*Region + EDUC, df))
-mod4 <- with(df_mitml, lm(Income_cont ~ 1 + Race*Region + Gender + EDUC, df))
-mod5 <- with(df_mitml, lm(Income_cont ~ 1 + Gender*Region + Race + EDUC, df))
-mod6 <- with(df_mitml, lm(Income_cont ~ 1 + Region*EDUC + Race + Gender, df))
-mod7 <- with(df_mitml, lm(Income_cont ~ 1 + Region*EDUC + Race*Gender, df))
-mod8 <- with(df_mitml, lm(Income_cont ~ 1 + Region*EDUC*Race*Gender, df))
-```
-Check output
-```{r}
-
-testEstimates(mod1, extra.pars=TRUE)
-testEstimates(mod2, extra.pars=TRUE)
-testEstimates(mod3, extra.pars=TRUE)
-testEstimates(mod4, extra.pars=TRUE)
-testEstimates(mod5, extra.pars=TRUE)
-testEstimates(mod6, extra.pars=TRUE)
-testEstimates(mod7, extra.pars=TRUE)
-testEstimates(mod8, extra.pars=TRUE)
-testEstimates(mod9, extra.pars=TRUE)
-testEstimates(mod10, extra.pars=TRUE)
-```
