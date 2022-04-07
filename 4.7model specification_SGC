@@ -1,0 +1,44 @@
+---
+title: "4/7 Model Specification"
+output: html_document
+date: '2022-04-07'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(mice)
+library(lme4)
+library(AICcmodavg)
+```
+```{r}
+#load your data
+load("~/ResEv Class Project/df.rda")
+#complete for MI
+df <- complete(df)
+```
+```{r}
+#run models
+mod1 <- with(df_mitml, lm(Income_cont ~ 1 + Race + Region + Gender + EDUC, df))
+mod2 <- with(df_mitml, lm(Income_cont ~ 1 + Race*Gender + Region + EDUC, df))
+mod3 <- with(df_mitml, lm(Income_cont ~ 1 + Race*Gender*Region + EDUC, df))
+mod4 <- with(df_mitml, lm(Income_cont ~ 1 + Race*Region + Gender + EDUC, df))
+mod5 <- with(df_mitml, lm(Income_cont ~ 1 + Gender*Region + Race + EDUC, df))
+mod6 <- with(df_mitml, lm(Income_cont ~ 1 + Region*EDUC + Race + Gender, df))
+mod7 <- with(df_mitml, lm(Income_cont ~ 1 + Region*EDUC + Race*Gender, df))
+mod8 <- with(df_mitml, lm(Income_cont ~ 1 + Region*EDUC*Race*Gender, df))
+
+summary(mod1)
+```
+```{r}
+#See AIC scores
+#define list of models
+models <- list(mod1, mod2, mod3, mod4, mod5, mod6, mod7, mod8)
+#specify model names
+Modnames <- c("mod1","mod2","mod3","mod4","mod5","mod6","mod7", "mod8")
+
+#calculate AIC of each model
+aictab.AIClm <- function(cand.set = models, modnames = Modnames, sort = TRUE, ...)
+```

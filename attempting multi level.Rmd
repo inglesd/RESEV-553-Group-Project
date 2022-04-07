@@ -1,0 +1,48 @@
+---
+title: "Assumption Checking"
+output: html_document
+date: '2022-03-09'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lme4)
+library(tidyverse)
+library(mice)
+library(mitml)
+```
+Load Data
+```{r}
+load("~/ResEv Class Project/df_impg.rda")
+df <- df_impg
+df_mitml<- mids2mitml.list(df)
+view(df_mitml[[2]])
+```
+
+
+Run model
+```{r}
+mod_1_mi <- with(df_mitml, lm(EDUC_cont ~ 1 + Gender + Region))
+```
+test estimates
+```{r}
+testEstimates(mod_1_mi, extra.pars=TRUE)
+plot(mod_1_mi[[2]])
+summary(mod_1_mi)
+```
+
+Make HLM
+```{r}
+#turn the categories into numbers
+df_2 <- df_mitml %>% 
+  mutate(Region_hlm = ifelse (Region == "Midwest", 1,
+                              ifelse (Region == "South", 2,
+                                      ifelse (Region == "West", 3, 
+                                              ifelse (Region == "Northeast", 4, 0)))))
+
+```
+Test Estimates
+```{r}
+testEstimates(mod_1_hlm, extra.pars = TRUE)
+```
+

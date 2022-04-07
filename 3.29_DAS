@@ -1,0 +1,150 @@
+---
+title: "NewNew ResEv File"
+output: html_document
+date: '2022-03-30'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(haven)
+```
+
+Open and rename Data
+```{r}
+prgusap1_puf <- read_sas("prgusap1_puf.sas7bdat")
+View(prgusap1_puf)
+df <- prgusap1_puf
+```
+Cut out Extra variables and rename columns
+```{r}
+#select(RACETHN_5CAT, REGION_US, EDCAT8, A_N01_T)
+#rename(Race5=RACETHN_5CAT, Region=REGION_US, EDU8=EDCAT8, Gender= A_N01_T)
+df_smallg <- df%>%
+  select(RACETHN_5CAT, REGION_US, EDCAT8, A_N01_T, J_Q09USX) %>%
+  rename(Race=RACETHN_5CAT, Region=REGION_US, EDUC=EDCAT8, Gender=A_N01_T, Income=J_Q09USX)
+
+```
+Change name of Race Variables
+```{r}
+df_Raceg <- df_smallg %>%
+  mutate(Race = ifelse(Race==1, "Hispanic",
+                       ifelse(Race==2, "White",
+                              ifelse(Race==3, "Black",
+                                     ifelse(Race==4, "Asian/Pacific Islander",
+                                            ifelse(Race==6, "Other", "Not Stated" ))))))
+                                                   
+```
+Change name of Region Variables
+```{r}
+df_Region_Raceg <- df_Raceg %>%
+  mutate(Region = ifelse(Region== 1, "Northeast",
+                         ifelse(Region== 2, "Midwest",
+                                ifelse(Region== 3, "South",
+                                       ifelse(Region== 4, "West", "Other Region")))))
+```
+Change name of Education Variables
+```{r}
+df_Ed_Reg_Raceg <- df_Region_Raceg %>%
+  mutate(EDUC = ifelse(EDUC==1 | EDUC==2, "Primary",
+                       ifelse(EDUC==3 | EDUC==4, "Secondary",
+                              ifelse(EDUC==6, "Bachelors",
+                                     ifelse(EDUC==7, "Masters",
+                                            ifelse(EDUC==5 | EDUC==8, "Professional", "Other"))))))
+df_Ed_Reg_Raceg <- df_Region_Raceg %>%
+   mutate(EDUC_cont = ifelse(EDUC== "Primary", 1,
+                         ifelse(EDUC== "Secondary", 2,
+                                ifelse(EDUC== "Bachelors", 3,
+                                       ifelse(EDUC== "Masters", 4,
+                                              ifelse(EDUC== "Professional", 5,0))))))
+                                                   
+```
+Change name of Gender Variables
+```{r}
+df_4VAR <- df_Ed_Reg_Raceg %>%
+  mutate(Gender = ifelse(Gender== 1, "Male",
+                         ifelse(Gender== 2, "Female",
+                                 "Other ")))
+```
+Income
+```{r}
+df_5VAR <- df_4VAR %>%
+  mutate(Income_cont = ifelse(Income== 1, "5000",
+                         ifelse(Income== 2, "10000",
+                         ifelse(Income== 3, "25000", 
+                         ifelse(Income== 4, "35000",
+                         ifelse(Income== 5, "45000",
+                          ifelse(Income== 6, "55000",
+                          ifelse(Income== 7, "67500",
+                          ifelse(Income== 8, "87500",
+                          ifelse(Income== 9, "125000",
+                          ifelse(Income== 10, "200000", 
+                          ifelse(Income== 11, "0", "Other")))))))))))) 
+df <- df_5VAR %>%
+  mutate(Income = ifelse(Income== 1, "1-9,999",
+                  ifelse(Income== 2, "10,000-19,999",
+                  ifelse(Income== 3, "20,000- 29,999", 
+                  ifelse(Income== 4, "30,000-39,999",
+                   ifelse(Income== 5, "40,000- 49,999", 
+                  ifelse(Income== 6, "40,000-59,999",
+                   ifelse(Income== 7, "60,000-74,999",
+                   ifelse(Income== 8, "75,000-99,999",
+                    ifelse(Income== 9, "100,000-149,999",
+                    ifelse(Income== 10, "150,000 +", 
+                    ifelse(Income== 11, "0", "Other" ))))))))))))
+```
+
+Load Packages We Need
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mice)
+
+```
+```{r}
+df$Income_cont <- as.numeric(df$Income_cont)
+df$EDUC_cont <- as.numeric(df$EDUC_cont)
+df$Region <- as.numeric(df$Region)
+df$Income <- as.factor(df$Income)
+df$EDUC <- as.factor(df$EDUC)
+df$Gender <- as.factor(df$Gender)
+df$Race <- as.factor(df$Race)
+
+summary(df)
+```
+```{r}
+#Trying mice M=# of times imputed
+
+df_impg <- mice(df, m = 10, seed = 1)
+```
+remove problems
+```{r}
+pred <- quickpred(df_asfactorg)
+pred[,] <- 0
+df_impg <- mice(df_asfactorg, m= 2, seed= 1, predictorMatrix = pred)
+```
+check
+```{r}
+summary(df_impg)
+
+complete(df_impg)
+
+summary(complete(df_impg))
+```
+Load library of needs for Regression
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lme4)
+library(MuMIn)
+library(mitml)
+library(mice)
+library(miceadds)
+```
+Make it a mitml
+```{r}
+df2 <- complete(df_impg)
+df_mitml <- mids2mitml.list(df_impg)
+save(df2, file= "df2.rda")
+```
+

@@ -1,0 +1,77 @@
+---
+title: "Descriptive Stats 4.7"
+output: html_document
+date: '2022-04-07'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Descriptive Statistics Counts and Percent All
+```{r}
+desc_stat_ALLg <- df %>%
+  group_by(Region, Race, EDUC, Gender)%>%
+  summarize(N=n())%>%
+  ungroup()%>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+  
+write.csv(desc_stat_ALLg, "desc_stat_ALLg.csv")
+desc_stat_ALLg <- as.data.frame(desc_stat_ALLg)
+```
+Descriptive Statistics for plot for Gender by Region
+```{r}
+desc_stat_Genderg <- df %>% group_by(Gender,Region) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_Genderg, "desc_stat_Genderg.csv")
+desc_stat_Genderg <- as.data.frame(desc_stat_Genderg)
+```
+Plot of Gender by Region
+```{r}
+ggplot(desc_stat_Genderg, aes(x = Region, y=perc, fill=Gender)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+```
+Descriptive Statistics for Plot of Race by Region
+```{r}
+desc_stat_Raceg <- df %>% group_by(Region,Race) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_Raceg, "desc_stat_Raceg.csv")
+desc_stat_Raceg <- as.data.frame(desc_stat_Raceg)
+```
+
+Plot of Race by Region
+```{r}
+ggplot(desc_stat_Raceg, aes(x = Region, y=perc, fill=Race)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+```
+Descriptive Statistics of Education by Region
+```{r}
+desc_stat_EDUCg <- df %>% group_by(EDUC, Region) %>%
+  summarise(N=n()) %>%
+  ungroup() %>%
+  group_by(Region) %>%
+  mutate (perc = N/sum(N))
+
+write.csv(desc_stat_EDUCg, "desc_stat_EDUCg.csv")
+desc_stat_EDUCg <- as.data.frame(desc_stat_EDUCg)
+```
+
+Plot of Education by Region
+```{r}
+desc_stat_EDUCg$EDUC <- factor(desc_stat_EDUCg$EDUC, levels =c("Primary", "Secondary", "Bachelors", "Masters", "Professional", "Other"))
+
+ggplot(desc_stat_EDUC, aes(x = Region, y=perc, fill=EDUC)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_y_continuous(label = scales::: percent_format(accuracy =1))
+```

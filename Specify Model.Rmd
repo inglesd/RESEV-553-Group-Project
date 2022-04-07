@@ -1,0 +1,81 @@
+---
+title: "Specify Model"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load and run packages
+```{r}
+library(mice)
+library(lme4)
+library(AICcmodavg)
+library(tidyverse)
+```
+
+```{r}
+
+load("~/GitHub/RESEV-553-Group-Project/cleanimputeddata.rda")
+
+
+df<- complete(df_imp)
+
+
+```
+
+
+```{r}
+
+# mod1 <- lm(Income_cont ~ 1 + Race * Gender * (1|Region_hlm), df)
+# 
+# mod2 <- lm(Income_cont ~ 1 +  Race * Gender * EDUC * (1 | Region_hlm), df)
+# 
+# mod3 <- lm(Income_cont ~1 + Race + Gender + (1| Region_hlm), df)
+#
+# mod3 <- lm(Income_cont ~1 + Race + Gender * (1| Region_hlm), df)
+# 
+# mod4 <- lm(Income_cont ~1 + Race + EDUC * (1| Region_hlm), df)
+# 
+# mod5 <- lm(Income_cont ~1 + Gender + EDUC * (1| Region_hlm), df)
+# 
+# mod3 <- lm(Income_cont ~1 + Race + Gender + (1| Region_hlm), df)
+# 
+# mod4 <- lm(Income_cont ~1 + Race + EDUC + (1| Region_hlm), df)
+# 
+# mod5 <- lm(Income_cont ~1 + Gender + EDUC + (1| Region_hlm), df)
+
+
+
+mod1 <- lm(Income_cont ~1 + Race + Gender + EDUC + (1| Region_hlm), df)
+
+mod2 <- lm(Income_cont ~1 + EDUC * Race + Gender + (1| Region_hlm), df)
+
+mod3 <- lm(Income_cont ~1 + EDUC * Gender + Race + (1| Region_hlm), df)
+
+mod4 <- lm(Income_cont ~1 + EDUC + Race * Gender + (1| Region_hlm), df)
+
+mod5 <- lm(Income_cont ~1 + EDUC * Race * Gender + (1| Region_hlm), df)
+
+
+
+```
+
+```{r}
+
+
+#define list of models (models<- list())
+
+models <- list (mod1, mod2, mod3, mod4, mod5)
+#specify model names (mod.names<-c("",""))
+
+mod.names <- c("mod1", "mod2", "mod3", "mod4", "mod5")
+
+#calculate AIC of each model (aictab(cand.set= models, modnames = mod.names))
+
+aictab(cand.set = models, modnames = mod.names)
+
+
+```
+

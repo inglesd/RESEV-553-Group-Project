@@ -1,0 +1,55 @@
+---
+title: "Run Model"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load and run packages
+```{r}
+library(tidyverse)
+library(lme4)
+library(MuMIn)
+library(mitml)
+library(mice)
+library(miceadds)
+```
+
+```{r}
+
+load("~/GitHub/RESEV-553-Group-Project/cleanimputeddata.rda")
+# df <- complete(df_imp)
+df_mitml <- mids2mitml.list(df_imp)
+# save(df, file = "df.rda")
+
+
+```
+
+
+```{r}
+
+
+mod4 <- with(df_mitml, lmer(Income_cont ~1 + EDUC + Race * Gender + (1| Region_hlm)))
+
+
+
+
+```
+
+```{r}
+
+testEstimates(mod4, extra.pars = TRUE)
+
+
+```
+```{r}
+
+save(mod4,file= "mod.rda")
+output_imp <- testEstimates(mod4, extra.parts = TRUE)
+estimates <- output_imp[["estimates"]]
+write.csv(estimates, file = "estimates.csv")
+
+```
+
