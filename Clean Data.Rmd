@@ -12,12 +12,7 @@ library(tidyverse)
 ```
 
 ```{r}
-library(haven)
-
-
-# prgusap1_puf <- read_sas("GitHub/RESEV-553-Group-Project/prgusap1_puf.sas7bdat", 
-#     NULL)
-# View(prgusap1_puf)
+#load data sas file
 
 
 ```

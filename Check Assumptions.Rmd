@@ -7,7 +7,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
+Load and run packages
 ```{r}
 
 library(tidyverse)
@@ -16,8 +16,6 @@ library(MuMIn)
 library(mitml)
 library(mice)
 library(miceadds)
-
-
 ```
 
 ```{r}
