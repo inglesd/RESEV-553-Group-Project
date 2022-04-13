@@ -1,0 +1,411 @@
+---
+title: "Figures"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(multcomp)
+library(ggplot2)
+cbbpalette <- c( "#009E73", "#e79f00", "#9ad0f3", "#0072B2", "#D55E00", 
+    "#CC79A7","#000000", "#F0E442") #colorblind and grayscale friendly.
+```
+
+Load the final model
+```{r}
+#You'll need to load in your own model here. Note, this is not the data, but the actual model you ran and hopefully saved.
+load("~/RESEV_553/Census/mod_final.rda")
+mod <- mod_final
+```
+
+Prepare groups
+```{r}
+#Check what coefficients you have
+summary(mod)
+```
+
+```{r}
+#Define each group you want to predict a score for. Above that, list out all of your coefficients to help keep things straight.
+
+        #c(I, )
+group1 = c(1, )
+group2 = c()
+group3 = c()
+
+#put all of your predicted groups into one larger groups list 
+groups <- rbind('name of group 1'=group1,  
+                          'Name of group 2'=group2,
+                          'Asian Men'= group3) #example
+```
+
+Get estimates for non-MI
+```{r}
+#this summarizes a bunch of key features of your model making predictions for each group
+temp <- summary(glht(mod, linfct=groups)) 
+
+# this looks at the covariance across variables and helps create accurate error bars when adding terms together
+temp_cov <- vcov(glht(mod, linfct=groups)) 
+
+#this gives you the actual estimates for each group
+get.est <-  data.frame(group=rownames(temp$linfct), 
+             d = temp$test$coefficients, 
+             var.d = (temp$test$sigma)^2,
+             cov = temp_cov)
+
+#This combines the estimates with the correct error terms
+est <- get.est %>% group_by(group) %>% 
+                  summarise(Q = mean(d), 
+                            T = mean(var.d), 
+                            LCL = Q - 1.96*sqrt(T), 
+                            UCL = Q + 1.96*sqrt(T),
+                            SE = sqrt(T)) %>%
+  mutate(Race = word(group, 1), #This makes a new variable called "Race" and it uses the first word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
+         Gender = word(group, 2), #This makes a new variable called "Gender" and it uses the second word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
+         Degree = word(group, 3), #This makes a new variable called "Degree" and it uses the third word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
+         Gender_Degree = paste(Gender,Degree, sep= " "), #This makes a new variable that combines the gender and degree. It'll be useful in the figure. You'll need to make sure this makes sense for your data.
+         Degree = factor(Degree, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
+         Gender_Degree = factor(Gender_Degree, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
+```
+
+Get estimates for MI
+```{r}
+#first, we make a function that will do the thing across all of the imputed datasets
+#This is very similar to the non-MI one, but includes a function to do it across all of the imputations. Basically don't mess with the stuff at the top here and you'll be good.
+pool_and_cov_diffwm <- function(x,y){
+  get.est <- foreach(i=1:10, .combine=rbind) %do% {
+  sxp3 <- summary(glht(x[[i]], linfct=y))
+  covp3 <- vcov(glht(x[[i]], linfct=y))
+  data.frame(imp=i, 
+             group=rownames(sxp3$linfct),
+             d = sxp3$test$coefficients, 
+             var.d = (sxp3$test$sigma)^2,
+             cov = covp3)
+}
+est <- get.est %>% group_by(group) %>% 
+                  summarise(Q = mean(d), 
+                            U = mean(var.d), 
+                            B = var(d), 
+                            T = U + ((1+1/max(imp))*B), 
+                            LCL = Q - 1.96*sqrt(T), 
+                            UCL = Q + 1.96*sqrt(T),
+                            SE = sqrt(T))  %>%
+  mutate(Race = word(group, 1), #This makes a new variable called "Race" and it uses the first word in the "group" variable for its values
+         Gender = word(group, 2), #This makes a new variable called "Gender" and it uses the second word in the "group" variable for its values
+         Degree = word(group, 3), #This makes a new variable called "Degree" and it uses the third word in the "group" variable for its values
+         Gender_Degree = paste(Gender,Degree, sep= " "), #This makes a new variable that combines the gender and degree. It'll be useful in the figure.
+         Degree = factor(Degree, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
+         Gender_Degree = factor(Gender_Degree, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
+return <- est}
+
+#then we run that function to get our estimates
+est <- pool_and_cov_diffwm(mod,groups)
+```
+
+Make the figure
+```{r}
+#x= sets what variable you want on the x axis. 
+#group= sets what groups you want within each term on the x axis. 
+#color= what groups should define the different colors you use. 
+#shape = sets what term defines the symbols that are used for the points.
+ggplot(data=est, aes(x=Race, y=Q, group=Gender_Degree, color= Degree, shape = Gender)) +
+  #geom_point sets it as points on the plot (as apposed to geom_bar which would give a bar graph)
+  geom_point(position = position_dodge(width=0.90), size=3) + 
+  # gemo_errorbar sets the error bars
+  geom_errorbar(aes( ymax= Q+SE, ymin=Q-SE), position="dodge")+
+  #Theme() is setting the key and some other stuff
+  theme(legend.position = "right",  axis.text.x=element_text(angle=0) , axis.title.x = element_blank(), axis.ticks.x=element_blank(),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"),text = element_text(size=16, color = "black")) +
+  # set the y-axis label
+  ylab("Income")  +
+  #set the y-axis scale
+  scale_y_continuous(breaks=seq(0, 200000, 25000),limits=c(0,200000)) 
+
+#Saves the image
+ggsave("~/model.png", plot= last_plot(), dpi=300, width = 7.3, height = 3.25, units = "in", device = "png")
+```
+
+-------Below here is the specific example---------
+Prepare groups
+```{r}
+#Check what coefficients you have
+# summary(mod)
+
+        # c(I,B,M,Wh, HS,AA,BA,MA,Pr,Ph, Wo, BHS,MHS,WhHS, BAA,MAA,WhAA, BBA,MBA,WhBA,  BMA,MMA,WhMA, BPr,MPr,WhPr, BPh,MPh,WhPh, BWo,MWo,WhWo, HSWo,AAWo,BAWo,MAWo,PrWo,PhWo, 
+#BHSWo,MHSWo,WhHSWo, BAAWo,MAAWo,WhAAWo, BBAWo,MBAWo,WhBAWo, BMAWo,MMAWo,WhMAWo, BPrWo,MPrWo,WhPrWo,  BPhWo,MPhWo,WhPhWo)
+MeANoHS = c(1,0,0,0 , 0 ,0 ,0 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeAHS =   c(1,0,0,0 , 1 ,0 ,0 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeAAA =   c(1,0,0,0 , 0 ,1 ,0 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeABA =   c(1,0,0,0 , 0 ,0 ,1 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeAMA =   c(1,0,0,0 , 0 ,0 ,0 ,1 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeAPr =   c(1,0,0,0 , 0 ,0 ,0 ,0 ,1 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeAPh =   c(1,0,0,0 , 0 ,0 ,0 ,0 ,0 ,1 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+        # c(I,B,M,Wh, HS,AA,BA,MA,Pr,Ph, Wo, BHS,MHS,WhHS, BAA,MAA,WhAA, BBA,MBA,WhBA,  BMA,MMA,WhMA, BPr,MPr,WhPr, BPh,MPh,WhPh, BWo,MWo,WhWo, HSWo,AAWo,BAWo,MAWo,PrWo,PhWo, 
+#BHSWo,MHSWo,WhHSWo, BAAWo,MAAWo,WhAAWo, BBAWo,MBAWo,WhBAWo, BMAWo,MMAWo,WhMAWo, BPrWo,MPrWo,WhPrWo,  BPhWo,MPhWo,WhPhWo)
+MeBNoHS = c(1,1,0,0 , 0 ,0 ,0 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeBHS =   c(1,1,0,0 , 1 ,0 ,0 ,0 ,0 ,0 , 0 , 1  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeBAA =   c(1,1,0,0 , 0 ,1 ,0 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 1  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeBBA =   c(1,1,0,0 , 0 ,0 ,1 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 1  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeBMA =   c(1,1,0,0 , 0 ,0 ,0 ,1 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  1  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeBPr =   c(1,1,0,0 , 0 ,0 ,0 ,0 ,1 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 1  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeBPh =   c(1,1,0,0 , 0 ,0 ,0 ,0 ,0 ,1 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 1  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+        # c(I,B,M,Wh, HS,AA,BA,MA,Pr,Ph, Wo, BHS,MHS,WhHS, BAA,MAA,WhAA, BBA,MBA,WhBA,  BMA,MMA,WhMA, BPr,MPr,WhPr, BPh,MPh,WhPh, BWo,MWo,WhWo, HSWo,AAWo,BAWo,MAWo,PrWo,PhWo, 
+#BHSWo,MHSWo,WhHSWo, BAAWo,MAAWo,WhAAWo, BBAWo,MBAWo,WhBAWo, BMAWo,MMAWo,WhMAWo, BPrWo,MPrWo,WhPrWo,  BPhWo,MPhWo,WhPhWo)
+MeMNoHS = c(1,0,1,0 , 0 ,0 ,0 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeMHS =   c(1,0,1,0 , 1 ,0 ,0 ,0 ,0 ,0 , 0 , 0  ,1  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeMAA =   c(1,0,1,0 , 0 ,1 ,0 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,1  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeMBA =   c(1,0,1,0 , 0 ,0 ,1 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,1  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeMMA =   c(1,0,1,0 , 0 ,0 ,0 ,1 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,1  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeMPr =   c(1,0,1,0 , 0 ,0 ,0 ,0 ,1 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,1  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeMPh =   c(1,0,1,0 , 0 ,0 ,0 ,0 ,0 ,1 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,1  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+
+        # c(I,B,M,Wh, HS,AA,BA,MA,Pr,Ph, Wo, BHS,MHS,WhHS, BAA,MAA,WhAA, BBA,MBA,WhBA,  BMA,MMA,WhMA, BPr,MPr,WhPr, BPh,MPh,WhPh, BWo,MWo,WhWo, HSWo,AAWo,BAWo,MAWo,PrWo,PhWo, 
+#BHSWo,MHSWo,WhHSWo, BAAWo,MAAWo,WhAAWo, BBAWo,MBAWo,WhBAWo, BMAWo,MMAWo,WhMAWo, BPrWo,MPrWo,WhPrWo,  BPhWo,MPhWo,WhPhWo)
+MeWhNoHS = c(1,0,0,1 , 0 ,0 ,0 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeWhHS =   c(1,0,0,1 , 1 ,0 ,0 ,0 ,0 ,0 , 0 , 0  ,0  ,1   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeWhAA =   c(1,0,0,1 , 0 ,1 ,0 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,1   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeWhBA =   c(1,0,0,1 , 0 ,0 ,1 ,0 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,1   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeWhMA =   c(1,0,0,1 , 0 ,0 ,0 ,1 ,0 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,1   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeWhPr =   c(1,0,0,1 , 0 ,0 ,0 ,0 ,1 ,0 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,1   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+MeWhPh =   c(1,0,0,1 , 0 ,0 ,0 ,0 ,0 ,1 , 0 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,1   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+
+        # c(I,B,M,Wh, HS,AA,BA,MA,Pr,Ph, Wo, BHS,MHS,WhHS, BAA,MAA,WhAA, BBA,MBA,WhBA,  BMA,MMA,WhMA, BPr,MPr,WhPr, BPh,MPh,WhPh, BWo,MWo,WhWo, HSWo,AAWo,BAWo,MAWo,PrWo,PhWo, 
+#BHSWo,MHSWo,WhHSWo, BAAWo,MAAWo,WhAAWo, BBAWo,MBAWo,WhBAWo, BMAWo,MMAWo,WhMAWo, BPrWo,MPrWo,WhPrWo,  BPhWo,MPhWo,WhPhWo)
+WoANoHS = c(1,0,0,0 , 0 ,0 ,0 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoAHS =   c(1,0,0,0 , 1 ,0 ,0 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 1   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoAAA =   c(1,0,0,0 , 0 ,1 ,0 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,1   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoABA =   c(1,0,0,0 , 0 ,0 ,1 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,1   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoAMA =   c(1,0,0,0 , 0 ,0 ,0 ,1 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,1   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoAPr =   c(1,0,0,0 , 0 ,0 ,0 ,0 ,1 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,1   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoAPh =   c(1,0,0,0 , 0 ,0 ,0 ,0 ,0 ,1 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,1   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+
+        # c(I,B,M,Wh, HS,AA,BA,MA,Pr,Ph, Wo, BHS,MHS,WhHS, BAA,MAA,WhAA, BBA,MBA,WhBA,  BMA,MMA,WhMA, BPr,MPr,WhPr, BPh,MPh,WhPh, BWo,MWo,WhWo, HSWo,AAWo,BAWo,MAWo,PrWo,PhWo, 
+#BHSWo,MHSWo,WhHSWo, BAAWo,MAAWo,WhAAWo, BBAWo,MBAWo,WhBAWo, BMAWo,MMAWo,WhMAWo, BPrWo,MPrWo,WhPrWo,  BPhWo,MPhWo,WhPhWo)
+WoBNoHS = c(1,1,0,0 , 0 ,0 ,0 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 1  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoBHS =   c(1,1,0,0 , 1 ,0 ,0 ,0 ,0 ,0 , 1 , 1  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 1  ,0  ,0   , 1   ,0   ,0   ,0   ,0   ,0   ,
+ 1    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoBAA =   c(1,1,0,0 , 0 ,1 ,0 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 1  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 1  ,0  ,0   , 0   ,1   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 1    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoBBA =   c(1,1,0,0 , 0 ,0 ,1 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 1  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 1  ,0  ,0   , 0   ,0   ,1   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 1    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoBMA =   c(1,1,0,0 , 0 ,0 ,0 ,1 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  1  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 1  ,0  ,0   , 0   ,0   ,0   ,1   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 1    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoBPr =   c(1,1,0,0 , 0 ,0 ,0 ,0 ,1 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 1  ,0  ,0   , 0  ,0  ,0   , 1  ,0  ,0   , 0   ,0   ,0   ,0   ,1   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 1    ,0    ,0     ,  0    ,0    ,0)
+WoBPh =   c(1,1,0,0 , 0 ,0 ,0 ,0 ,0 ,1 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 1  ,0  ,0   , 1  ,0  ,0   , 0   ,0   ,0   ,0   ,0   ,1   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  1    ,0    ,0)
+
+        # c(I,B,M,Wh, HS,AA,BA,MA,Pr,Ph, Wo, BHS,MHS,WhHS, BAA,MAA,WhAA, BBA,MBA,WhBA,  BMA,MMA,WhMA, BPr,MPr,WhPr, BPh,MPh,WhPh, BWo,MWo,WhWo, HSWo,AAWo,BAWo,MAWo,PrWo,PhWo, 
+#BHSWo,MHSWo,WhHSWo, BAAWo,MAAWo,WhAAWo, BBAWo,MBAWo,WhBAWo, BMAWo,MMAWo,WhMAWo, BPrWo,MPrWo,WhPrWo,  BPhWo,MPhWo,WhPhWo)
+WoMNoHS = c(1,0,1,0 , 0 ,0 ,0 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,1  ,0   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoMHS =   c(1,0,1,0 , 1 ,0 ,0 ,0 ,0 ,0 , 1 , 0  ,1  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,1  ,0   , 1   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,1    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoMAA =   c(1,0,1,0 , 0 ,1 ,0 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,1  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,1  ,0   , 0   ,1   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,1    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoMBA =   c(1,0,1,0 , 0 ,0 ,1 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,1  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,1  ,0   , 0   ,0   ,1   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,1    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoMMA =   c(1,0,1,0 , 0 ,0 ,0 ,1 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,1  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,1  ,0   , 0   ,0   ,0   ,1   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,1    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoMPr =   c(1,0,1,0 , 0 ,0 ,0 ,0 ,1 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,1  ,0   , 0  ,0  ,0   , 0  ,1  ,0   , 0   ,0   ,0   ,0   ,1   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,1    ,0     ,  0    ,0    ,0)
+WoMPh =   c(1,0,1,0 , 0 ,0 ,0 ,0 ,0 ,1 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,1  ,0   , 0  ,1  ,0   , 0   ,0   ,0   ,0   ,0   ,1   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,1    ,0)
+
+         # c(I,B,M,Wh, HS,AA,BA,MA,Pr,Ph, Wo, BHS,MHS,WhHS, BAA,MAA,WhAA, BBA,MBA,WhBA,  BMA,MMA,WhMA, BPr,MPr,WhPr, BPh,MPh,WhPh, BWo,MWo,WhWo, HSWo,AAWo,BAWo,MAWo,PrWo,PhWo, 
+#BHSWo,MHSWo,WhHSWo, BAAWo,MAAWo,WhAAWo, BBAWo,MBAWo,WhBAWo, BMAWo,MMAWo,WhMAWo, BPrWo,MPrWo,WhPrWo,  BPhWo,MPhWo,WhPhWo)
+WoWhNoHS = c(1,0,0,1 , 0 ,0 ,0 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,1   , 0   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoWhHS =   c(1,0,0,1 , 1 ,0 ,0 ,0 ,0 ,0 , 1 , 0  ,1  ,1   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,1   , 1   ,0   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,1     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoWhAA =   c(1,0,0,1 , 0 ,1 ,0 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,1   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,1   , 0   ,1   ,0   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,1     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoWhBA =   c(1,0,0,1 , 0 ,0 ,1 ,0 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,1   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,1   , 0   ,0   ,1   ,0   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,1     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoWhMA =   c(1,0,0,1 , 0 ,0 ,0 ,1 ,0 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,1   , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,1   , 0   ,0   ,0   ,1   ,0   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,1     , 0    ,0    ,0     ,  0    ,0    ,0)
+WoWhPr =   c(1,0,0,1 , 0 ,0 ,0 ,0 ,1 ,0 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,1   , 0  ,0  ,0   , 0  ,0  ,1   , 0   ,0   ,0   ,0   ,1   ,0   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,1     ,  0    ,0    ,0)
+WoWhPh =   c(1,0,0,1 , 0 ,0 ,0 ,0 ,0 ,1 , 1 , 0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,0   ,  0  ,0  ,0   , 0  ,0  ,0   , 0  ,0  ,1   , 0  ,0  ,1   , 0   ,0   ,0   ,0   ,0   ,1   ,
+ 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     , 0    ,0    ,0     ,  0    ,0    ,1)
+
+
+groups <- rbind('Asian Men No_HS'=MeANoHS,  
+                          'Asian Men HS'=MeAHS,
+                          'Asian Men AA'=MeAAA,  
+                          'Asian Men BA'=MeABA,
+                          'Asian Men MA'=MeAMA, 
+                          'Asian Men Professional'=MeAPr,
+                          'Asian Men PhD'=MeAPh, 
+                'Black Men No_HS'=MeBNoHS,  
+                          'Black Men HS'=MeBHS,
+                          'Black Men AA'=MeBAA,  
+                          'Black Men BA'=MeBBA,
+                          'Black Men MA'=MeBMA, 
+                          'Black Men Professional'=MeBPr,
+                          'Black Men PhD'=MeBPh, 
+                'Multiracial Men No_HS'=MeMNoHS,  
+                          'Multiracial Men HS'=MeMHS,
+                          'Multiracial Men AA'=MeMAA,  
+                          'Multiracial Men BA'=MeMBA,
+                          'Multiracial Men MA'=MeMMA, 
+                          'Multiracial Men Professional'=MeMPr,
+                          'Multiracial Men PhD'=MeMPh, 
+                'White Men No_HS'=MeWhNoHS,  
+                          'White Men HS'=MeWhHS,
+                          'White Men AA'=MeWhAA,  
+                          'White Men BA'=MeWhBA,
+                          'White Men MA'=MeWhMA, 
+                          'White Men Professional'=MeWhPr,
+                          'White Men PhD'=MeWhPh, 
+                
+                'Asian Women No_HS'=WoANoHS,  
+                          'Asian Women HS'=WoAHS,
+                          'Asian Women AA'=WoAAA,  
+                          'Asian Women BA'=WoABA,
+                          'Asian Women MA'=WoAMA, 
+                          'Asian Women Professional'=WoAPr,
+                          'Asian Women PhD'=WoAPh, 
+                'Black Women No_HS'=WoBNoHS,  
+                          'Black Women HS'=WoBHS,
+                          'Black Women AA'=WoBAA,  
+                          'Black Women BA'=WoBBA,
+                          'Black Women MA'=WoBMA, 
+                          'Black Women Professional'=WoBPr,
+                          'Black Women PhD'=WoBPh, 
+                'Multiracial Women No_HS'=WoMNoHS,  
+                          'Multiracial Women HS'=WoMHS,
+                          'Multiracial Women AA'=WoMAA,  
+                          'Multiracial Women BA'=WoMBA,
+                          'Multiracial Women MA'=WoMMA, 
+                          'Multiracial Women Professional'=WoMPr,
+                          'Multiracial Women PhD'=WoMPh, 
+                'White Women No_HS'=WoWhNoHS,  
+                          'White Women HS'=WoWhHS,
+                          'White Women AA'=WoWhAA,  
+                          'White Women BA'=WoWhBA,
+                          'White Women MA'=WoWhMA, 
+                          'White Women Professional'=WoWhPr,
+                          'White Women PhD'=WoWhPh)
+```
+
+Get estimates for non-MI
+```{r}
+#this summarizes a bunch of key features of your model making predictions for each group
+temp <- summary(glht(mod, linfct=groups)) 
+
+# this looks at the covariance across variables and helps create accurate error bars when adding terms together
+temp_cov <- vcov(glht(mod, linfct=groups)) 
+
+#this gives you the actual estimates for each group
+get.est <-  data.frame(group=rownames(temp$linfct), 
+             d = temp$test$coefficients, 
+             var.d = (temp$test$sigma)^2,
+             cov = temp_cov)
+
+#This combines the estimates with the correct error terms
+est <- get.est %>% group_by(group) %>% 
+                  summarise(Q = mean(d), 
+                            T = mean(var.d), 
+                            LCL = Q - 1.96*sqrt(T), 
+                            UCL = Q + 1.96*sqrt(T),
+                            SE = sqrt(T)) %>%
+  mutate(Race = word(group, 1), #This makes a new variable called "Race" and it uses the first word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
+         Gender = word(group, 2), #This makes a new variable called "Gender" and it uses the second word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
+         Degree = word(group, 3), #This makes a new variable called "Degree" and it uses the third word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
+         Gender_Degree = paste(Gender,Degree, sep= " "), #This makes a new variable that combines the gender and degree. It'll be useful in the figure. You'll need to make sure this makes sense for your data.
+         Degree = factor(Degree, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
+         Gender_Degree = factor(Gender_Degree, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
+```
+
+Get estimates for non-MI
+```{r}
+#first, we make a function that will do the thing across all of the imputed datasets
+pool_and_cov_diffwm <- function(x,y){
+  get.est <- foreach(i=1:10, .combine=rbind) %do% {
+  sxp3 <- summary(glht(x[[i]], linfct=y)) #specifically for post3
+  covp3 <- vcov(glht(x[[i]], linfct=y))
+  data.frame(imp=i, 
+             group=rownames(sxp3$linfct),
+             d = sxp3$test$coefficients, 
+             var.d = (sxp3$test$sigma)^2,
+             cov = covp3)
+}
+est <- get.est %>% group_by(group) %>% 
+                  summarise(Q = mean(d), 
+                            U = mean(var.d), 
+                            B = var(d), 
+                            T = U + ((1+1/max(imp))*B), 
+                            LCL = Q - 1.96*sqrt(T), 
+                            UCL = Q + 1.96*sqrt(T),
+                            SE = sqrt(T))  %>%
+  mutate(Race = word(group, 1), #This makes a new variable called "Race" and it uses the first word in the "group" variable for its values
+         Gender = word(group, 2), #This makes a new variable called "Gender" and it uses the second word in the "group" variable for its values
+         Degree = word(group, 3), #This makes a new variable called "Degree" and it uses the third word in the "group" variable for its values
+         Gender_Degree = paste(Gender,Degree, sep= " "), #This makes a new variable that combines the gender and degree. It'll be useful in the figure.
+         Degree = factor(Degree, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
+         Gender_Degree = factor(Gender_Degree, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
+return <- est}
+
+#then we run that function to get our estimates
+est <- pool_and_cov_diffwm(mod,groups)
+```
+
+
+Make the figure
+```{r}
+#x= sets what variable you want on the x axis. 
+#group= sets what groups you want within each term on the x axis. 
+#color= what groups should define the different colors you use. 
+#shape = sets what term defines the symbols that are used for the points.
+ggplot(data=est, aes(x=Race, y=Q, group=Gender_Degree, color= Degree, shape = Gender)) +
+  #geom_point sets it as points on the plot (as apposed to geom_bar which would give a bar graph)
+  geom_point(position = position_dodge(width=0.90), size=3) + 
+  # gemo_errorbar sets the error bars
+  geom_errorbar(aes( ymax= Q+SE, ymin=Q-SE), position="dodge")+
+  #Theme() is setting the key and some other stuff
+  theme(legend.position = "right",  axis.text.x=element_text(angle=0) , axis.title.x = element_blank(), axis.ticks.x=element_blank(),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"),text = element_text(size=16, color = "black")) +
+  # set the y-axis label
+  ylab("Income")  +
+  #set the y-axis scale
+  scale_y_continuous(breaks=seq(0, 200000, 25000),limits=c(0,200000)) 
+
+#Saves the image
+ggsave("~/model.png", plot= last_plot(), dpi=300, width = 7.3, height = 3.25, units = "in", device = "png")
+```
