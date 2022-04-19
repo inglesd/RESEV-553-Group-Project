@@ -9,6 +9,8 @@ library(tidyverse)
 library(dplyr)
 library(multcomp)
 library(ggplot2)
+library(mitml)
+library(foreach)
 cbbpalette <- c( "#009E73", "#e79f00", "#9ad0f3", "#0072B2", "#D55E00", 
     "#CC79A7","#000000", "#F0E442") #colorblind and grayscale friendly.
 ```
@@ -32,12 +34,12 @@ testEstimates(mod)
 ```{r}
 #Define each group you want to predict a score for. Above that, list out all of your coefficients to help keep things straight.
 
-#intercept = asian women with associates degree
+#intercept = asian women with associates Education
 
                   #c(I, BA, MA, PhD, Pri, Sec, B, H, RO, Wh, M, BM, HM, ROM, WhM)
 AsianWomenAssoc =  c(1,  0,  0,   0,   0,   0, 0, 0,  0,  0, 0,  0,  0,   0,   0)
 AsianWomenBA =     c(1,  1,  0,   0,   0,   0, 0, 0,  0,  0, 0,  0,  0,   0,   0)
-AsianWomenMA=      c(1,  0,  1,   0,   0,   0, 0, 0,  0,  0, 0,  0,  0,   0,   0)
+AsianWomenMA =     c(1,  0,  1,   0,   0,   0, 0, 0,  0,  0, 0,  0,  0,   0,   0)
 AsianWomenPhD =    c(1,  0,  0,   1,   0,   0, 0, 0,  0,  0, 0,  0,  0,   0,   0)
 AsianWomenPri =    c(1,  0,  0,   0,   1,   0, 0, 0,  0,  0, 0,  0,  0,   0,   0)
 AsianWomenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  0,  0, 0,  0,  0,   0,   0)
@@ -45,7 +47,7 @@ AsianWomenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  0,  0, 0,  0,  0,   0,   0
                   #c(I, BA, MA, PhD, Pri, Sec, B, H, RO, Wh, M, BM, HM, ROM, WhM)
 BlackWomenAssoc =  c(1,  0,  0,   0,   0,   0, 1, 0,  0,  0, 0,  0,  0,   0,   0)
 BlackWomenBA =     c(1,  1,  0,   0,   0,   0, 1, 0,  0,  0, 0,  0,  0,   0,   0)
-BlackWomenMA=      c(1,  0,  1,   0,   0,   0, 1, 0,  0,  0, 0,  0,  0,   0,   0)
+BlackWomenMA =     c(1,  0,  1,   0,   0,   0, 1, 0,  0,  0, 0,  0,  0,   0,   0)
 BlackWomenPhD =    c(1,  0,  0,   1,   0,   0, 1, 0,  0,  0, 0,  0,  0,   0,   0)
 BlackWomenPri =    c(1,  0,  0,   0,   1,   0, 1, 0,  0,  0, 0,  0,  0,   0,   0)
 BlackWomenSec =    c(1,  0,  0,   0,   0,   1, 1, 0,  0,  0, 0,  0,  0,   0,   0)
@@ -53,7 +55,7 @@ BlackWomenSec =    c(1,  0,  0,   0,   0,   1, 1, 0,  0,  0, 0,  0,  0,   0,   0
                 #c(I, BA, MA, PhD, Pri, Sec, B, H, RO, Wh, M, BM, HM, ROM, WhM)
 HisWomenAssoc =  c(1,  0,  0,   0,   0,   0, 0, 1,  0,  0, 0,  0,  0,   0,   0)
 HisWomenBA =     c(1,  1,  0,   0,   0,   0, 0, 1,  0,  0, 0,  0,  0,   0,   0)
-HisWomenMA=      c(1,  0,  1,   0,   0,   0, 0, 1,  0,  0, 0,  0,  0,   0,   0)
+HisWomenMA =     c(1,  0,  1,   0,   0,   0, 0, 1,  0,  0, 0,  0,  0,   0,   0)
 HisWomenPhD =    c(1,  0,  0,   1,   0,   0, 0, 1,  0,  0, 0,  0,  0,   0,   0)
 HisWomenPri =    c(1,  0,  0,   0,   1,   0, 0, 1,  0,  0, 0,  0,  0,   0,   0)
 HisWomenSec =    c(1,  0,  0,   0,   0,   1, 0, 1,  0,  0, 0,  0,  0,   0,   0)
@@ -61,7 +63,7 @@ HisWomenSec =    c(1,  0,  0,   0,   0,   1, 0, 1,  0,  0, 0,  0,  0,   0,   0)
                   #c(I, BA, MA, PhD, Pri, Sec, B, H, RO, Wh, M, BM, HM, ROM, WhM)
 OtherWomenAssoc =  c(1,  0,  0,   0,   0,   0, 0, 0,  1,  0, 0,  0,  0,   0,   0)
 OtherWomenBA =     c(1,  1,  0,   0,   0,   0, 0, 0,  1,  0, 0,  0,  0,   0,   0)
-OtherWomenMA=      c(1,  0,  1,   0,   0,   0, 0, 0,  1,  0, 0,  0,  0,   0,   0)
+OtherWomenMA =     c(1,  0,  1,   0,   0,   0, 0, 0,  1,  0, 0,  0,  0,   0,   0)
 OtherWomenPhD =    c(1,  0,  0,   1,   0,   0, 0, 0,  1,  0, 0,  0,  0,   0,   0)
 OtherWomenPri =    c(1,  0,  0,   0,   1,   0, 0, 0,  1,  0, 0,  0,  0,   0,   0)
 OtherWomenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  1,  0, 0,  0,  0,   0,   0)
@@ -69,7 +71,7 @@ OtherWomenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  1,  0, 0,  0,  0,   0,   0
                   #c(I, BA, MA, PhD, Pri, Sec, B, H, RO, Wh, M, BM, HM, ROM, WhM)
 WhiteWomenAssoc =  c(1,  0,  0,   0,   0,   0, 0, 0,  0,  1, 0,  0,  0,   0,   0)
 WhiteWomenBA =     c(1,  1,  0,   0,   0,   0, 0, 0,  0,  1, 0,  0,  0,   0,   0)
-WhiteWomanMA=      c(1,  0,  1,   0,   0,   0, 0, 0,  0,  1, 0,  0,  0,   0,   0)
+WhiteWomenMA =     c(1,  0,  1,   0,   0,   0, 0, 0,  0,  1, 0,  0,  0,   0,   0)
 WhiteWomenPhD =    c(1,  0,  0,   1,   0,   0, 0, 0,  0,  1, 0,  0,  0,   0,   0)
 WhiteWomenPri =    c(1,  0,  0,   0,   1,   0, 0, 0,  0,  1, 0,  0,  0,   0,   0)
 WhiteWomenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  0,  1, 0,  0,  0,   0,   0)
@@ -77,7 +79,7 @@ WhiteWomenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  0,  1, 0,  0,  0,   0,   0
                 #c(I, BA, MA, PhD, Pri, Sec, B, H, RO, Wh, M, BM, HM, ROM, WhM)
 AsianMenAssoc =  c(1,  0,  0,   0,   0,   0, 0, 0,  0,  0, 1,  0,  0,   0,   0)
 AsianMenBA =     c(1,  1,  0,   0,   0,   0, 0, 0,  0,  0, 1,  0,  0,   0,   0)
-AsianMenMA=      c(1,  0,  1,   0,   0,   0, 0, 0,  0,  0, 1,  0,  0,   0,   0)
+AsianMenMA =     c(1,  0,  1,   0,   0,   0, 0, 0,  0,  0, 1,  0,  0,   0,   0)
 AsianMenPhD =    c(1,  0,  0,   1,   0,   0, 0, 0,  0,  0, 1,  0,  0,   0,   0)
 AsianMenPri =    c(1,  0,  0,   0,   1,   0, 0, 0,  0,  0, 1,  0,  0,   0,   0)
 AsianMenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  0,  0, 1,  0,  0,   0,   0)
@@ -85,7 +87,7 @@ AsianMenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  0,  0, 1,  0,  0,   0,   0)
                 #c(I, BA, MA, PhD, Pri, Sec, B, H, RO, Wh, M, BM, HM, ROM, WhM)
 BlackMenAssoc =  c(1,  0,  0,   0,   0,   0, 1, 0,  0,  0, 1,  1,  0,   0,   0)
 BlackMenBA =     c(1,  1,  0,   0,   0,   0, 1, 0,  0,  0, 1,  1,  0,   0,   0)
-BlackMenMA=      c(1,  0,  1,   0,   0,   0, 1, 0,  0,  0, 1,  1,  0,   0,   0)
+BlackMenMA =     c(1,  0,  1,   0,   0,   0, 1, 0,  0,  0, 1,  1,  0,   0,   0)
 BlackMenPhD =    c(1,  0,  0,   1,   0,   0, 1, 0,  0,  0, 1,  1,  0,   0,   0)
 BlackMenPri =    c(1,  0,  0,   0,   1,   0, 1, 0,  0,  0, 1,  1,  0,   0,   0)
 BlackMenSec =    c(1,  0,  0,   0,   0,   1, 1, 0,  0,  0, 1,  1,  0,   0,   0)
@@ -93,7 +95,7 @@ BlackMenSec =    c(1,  0,  0,   0,   0,   1, 1, 0,  0,  0, 1,  1,  0,   0,   0)
               #c(I, BA, MA, PhD, Pri, Sec, B, H, RO, Wh, M, BM, HM, ROM, WhM)
 HisMenAssoc =  c(1,  0,  0,   0,   0,   0, 0, 1,  0,  0, 1,  0,  1,   0,   0)
 HisMenBA =     c(1,  1,  0,   0,   0,   0, 0, 1,  0,  0, 1,  0,  1,   0,   0)
-HisMenMA=      c(1,  0,  1,   0,   0,   0, 0, 1,  0,  0, 1,  0,  1,   0,   0)
+HisMenMA =     c(1,  0,  1,   0,   0,   0, 0, 1,  0,  0, 1,  0,  1,   0,   0)
 HisMenPhD =    c(1,  0,  0,   1,   0,   0, 0, 1,  0,  0, 1,  0,  1,   0,   0)
 HisMenPri =    c(1,  0,  0,   0,   1,   0, 0, 1,  0,  0, 1,  0,  1,   0,   0)
 HisMenSec =    c(1,  0,  0,   0,   0,   1, 0, 1,  0,  0, 1,  0,  1,   0,   0)
@@ -101,7 +103,7 @@ HisMenSec =    c(1,  0,  0,   0,   0,   1, 0, 1,  0,  0, 1,  0,  1,   0,   0)
                 #c(I, BA, MA, PhD, Pri, Sec, B, H, RO, Wh, M, BM, HM, ROM, WhM)
 OtherMenAssoc =  c(1,  0,  0,   0,   0,   0, 0, 0,  1,  0, 1,  0,  0,   1,   0)
 OtherMenBA =     c(1,  1,  0,   0,   0,   0, 0, 0,  1,  0, 1,  0,  0,   1,   0)
-OtherMenMA=      c(1,  0,  1,   0,   0,   0, 0, 0,  1,  0, 1,  0,  0,   1,   0)
+OtherMenMA =     c(1,  0,  1,   0,   0,   0, 0, 0,  1,  0, 1,  0,  0,   1,   0)
 OtherMenPhD =    c(1,  0,  0,   1,   0,   0, 0, 0,  1,  0, 1,  0,  0,   1,   0)
 OtherMenPri =    c(1,  0,  0,   0,   1,   0, 0, 0,  1,  0, 1,  0,  0,   1,   0)
 OtherMenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  1,  0, 1,  0,  0,   1,   0)
@@ -109,7 +111,7 @@ OtherMenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  1,  0, 1,  0,  0,   1,   0)
                 #c(I, BA, MA, PhD, Pri, Sec, B, H, RO, Wh, M, BM, HM, ROM, WhM)
 WhiteMenAssoc =  c(1,  0,  0,   0,   0,   0, 0, 0,  0,  1, 1,  0,  0,   0,   1)
 WhiteMenBA =     c(1,  1,  0,   0,   0,   0, 0, 0,  0,  1, 1,  0,  0,   0,   1)
-WhiteManMA=      c(1,  0,  1,   0,   0,   0, 0, 0,  0,  1, 1,  0,  0,   0,   1)
+WhiteMenMA =      c(1,  0,  1,   0,   0,   0, 0, 0,  0,  1, 1,  0,  0,   0,   1)
 WhiteMenPhD =    c(1,  0,  0,   1,   0,   0, 0, 0,  0,  1, 1,  0,  0,   0,   1)
 WhiteMenPri =    c(1,  0,  0,   0,   1,   0, 0, 0,  0,  1, 1,  0,  0,   0,   1)
 WhiteMenSec =    c(1,  0,  0,   0,   0,   1, 0, 0,  0,  1, 1,  0,  0,   0,   1)
@@ -121,99 +123,98 @@ groups <- rbind('Asian Women Associates' = AsianWomenAssoc,
                 'Asian Women Masters' = AsianWomenMA,
                 'Asian Women PhD' = AsianWomenPhD,
                 'Asian Women Primary' = AsianWomenPri,
-                'Asian Women Sececondary' = AsianWomenSec,
+                'Asian Women Secondary' = AsianWomenSec,
                 'Black Women Associates' = BlackWomenAssoc, 
-                'Black Women Backerlors' = BlackWomenBA,
+                'Black Women Bachelors' = BlackWomenBA,
                 'Black Women Masters' =BlackWomenMA,
                 'Black Women PhD' =BlackWomenPhD,
                 'Black Women Primary' =BlackWomenPri, 
                 'Black Women Secondary' = BlackWomenSec, 
-                 HisWomenAssoc, 
-                 HisWomenBA,
-                HisWomenMA,
-                HisWomenPhD,
-                HisWomenPri,
-                HisWomenSec,
-                OtherWomenAssoc,
-                OtherWomenBA,
-                OtherWomenMA,
-                OtherWomenPhD,
-                OtherWomenPri,
-                OtherWomenSec,
-                WhiteWomenAssoc,
-                WhiteWomenBA,
-                WhiteWomenMA,
-                WhiteWomenPhD,
-                WhiteWomenPri,
-                WhiteWomenSec,
-                AsianMenAssoc,
-                AsianMenBA,
-                AsianMenMA,
-                AsianMenPhD,
-                AsianMenPri,
-                AsianMenSec,
-                BlackMenAssoc,
-                BlackMenBA,
-                BlackMenMA,
-                BlackMenPhD,
-                BlackMenPri,
-                BlackMenSec,
-                HisMenAssoc,
-                HisMenBA,
-                HisMenMA,
-                HisMenPhD,
-                HisMenPri,
-                HisMenSec,
-                OtherMenAssoc,
-                OtherMenBA,
-                OtherMenMA,
-                OtherMenPhD,
-                OtherMenPri,
-                OtherMenSec,
-                WhiteMenAssoc,
-                WhiteMenBA,
-                WhiteMenMA,
-                WhiteMenPhD,
-                WhiteMenPri,
-                WhiteMenSec)
-
-
+                'Hispanic Women Associates' = HisWomenAssoc, 
+                'Hispanic Women Bachelors'= HisWomenBA,
+                'Hispanic Women Masters'= HisWomenMA,
+                'Hispanic Women PhD'= HisWomenPhD,
+                'Hispanic Women Primary'= HisWomenPri,
+                'Hispanic Women Secondary'= HisWomenSec,
+                'Other Women Associates'=OtherWomenAssoc,
+                'Other Women Bachelors'=OtherWomenBA,
+                'Other Women Masters'=OtherWomenMA,
+                'Other Women PhD'=OtherWomenPhD,
+                'Other Women Primary'=OtherWomenPri,
+                'Other Women Secondary'= OtherWomenSec,
+                'White Women Associates'= WhiteWomenAssoc,
+                'White Women Bachelors'= WhiteWomenBA,
+                'White Women Masters'= WhiteWomenMA,
+                'White Women PhD'= WhiteWomenPhD,
+                'White Women Primary'= WhiteWomenPri,
+                'White Women Secondary'= WhiteWomenSec,
+                'Asian Men Associates'= AsianMenAssoc,
+                'Asian Men Bachelors'= AsianMenBA,
+                'Asian Men Masters'= AsianMenMA,
+                'Asian Men PhD'= AsianMenPhD,
+                'Asian Men Primary'= AsianMenPri,
+                'Asian Men Secondary'= AsianMenSec,
+                'Black Men Associates' = BlackMenAssoc,
+                'Black Men Bachelors'= BlackMenBA,
+                'Black Men Masters'= BlackMenMA,
+                'Black Men PhD'= BlackMenPhD,
+                'Black Men Primary'= BlackMenPri,
+                'Black Men Secondary'= BlackMenSec,
+                'Hispanic Men Associates' = HisMenAssoc,
+                'Hispanic Men Bachelors'= HisMenBA,
+                'Hispanic Men Masters'= HisMenMA,
+                'Hispanic Men PhD'= HisMenPhD,
+                'Hispanic Men Primary'= HisMenPri,
+                'Hispanic Men Secondary'= HisMenSec,
+                'Other Men Associates' = OtherMenAssoc,
+                'Other Men Bachelors' = OtherMenBA,
+                'Other Men Masters' = OtherMenMA,
+                'Other Men PhD' = OtherMenPhD,
+                'Other Men Primary' = OtherMenPri,
+                'Other Men Secondary' =  OtherMenSec,
+                'White Men Associates' = WhiteMenAssoc,
+                'White Men Bachelors'= WhiteMenBA,
+                'White Men Masters'= WhiteMenMA,
+                'White Men PhD'= WhiteMenPhD,
+                'White Men Primary'= WhiteMenPri,
+                'White Men Secondary'= WhiteMenSec)
                 
 ```
 
 Get estimates for non-MI
 ```{r}
 #this summarizes a bunch of key features of your model making predictions for each group
-temp <- summary(glht(mod, linfct=groups)) 
+# temp <- summary(glht(mod, linfct=groups)) 
 
 # this looks at the covariance across variables and helps create accurate error bars when adding terms together
-temp_cov <- vcov(glht(mod, linfct=groups)) 
+# temp_cov <- vcov(glht(mod, linfct=groups)) 
 
 #this gives you the actual estimates for each group
-get.est <-  data.frame(group=rownames(temp$linfct), 
-             d = temp$test$coefficients, 
-             var.d = (temp$test$sigma)^2,
-             cov = temp_cov)
+# get.est <-  data.frame(group=rownames(temp$linfct), 
+#              d = temp$test$coefficients, 
+#              var.d = (temp$test$sigma)^2,
+#              cov = temp_cov)
 
 #This combines the estimates with the correct error terms
-est <- get.est %>% group_by(group) %>% 
-                  summarise(Q = mean(d), 
-                            T = mean(var.d), 
-                            LCL = Q - 1.96*sqrt(T), 
-                            UCL = Q + 1.96*sqrt(T),
-                            SE = sqrt(T)) %>%
-  mutate(Race = word(group, 1), #This makes a new variable called "Race" and it uses the first word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
-         Gender = word(group, 2), #This makes a new variable called "Gender" and it uses the second word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
-         Degree = word(group, 3), #This makes a new variable called "Degree" and it uses the third word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
-         Gender_Degree = paste(Gender,Degree, sep= " "), #This makes a new variable that combines the gender and degree. It'll be useful in the figure. You'll need to make sure this makes sense for your data.
-         Degree = factor(Degree, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
-         Gender_Degree = factor(Gender_Degree, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
+# est <- get.est %>% group_by(group) %>% 
+#                   summarise(Q = mean(d), 
+#                             T = mean(var.d), 
+#                             LCL = Q - 1.96*sqrt(T), 
+#                             UCL = Q + 1.96*sqrt(T),
+#                             SE = sqrt(T)) %>%
+#   mutate(Race = word(group, 1), #This makes a new variable called "Race" and it uses the first word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
+         # Gender = word(group, 2), #This makes a new variable called "Gender" and it uses the second word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
+         # Education = word(group, 3), #This makes a new variable called "Education" and it uses the third word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
+         # Gender_Education = paste(Gender,Education, sep= " "), #This makes a new variable that combines the gender and Education. It'll be useful in the figure. You'll need to make sure this makes sense for your data.
+         # Education = factor(Education, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
+         # Gender_Education = factor(Gender_Education, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
 ```
 
 Get estimates for MI
 ```{r}
 #first, we make a function that will do the thing across all of the imputed datasets
 #This is very similar to the non-MI one, but includes a function to do it across all of the imputations. Basically don't mess with the stuff at the top here and you'll be good.
+
 pool_and_cov_diffwm <- function(x,y){
   get.est <- foreach(i=1:10, .combine=rbind) %do% {
   sxp3 <- summary(glht(x[[i]], linfct=y))
@@ -222,8 +223,8 @@ pool_and_cov_diffwm <- function(x,y){
              group=rownames(sxp3$linfct),
              d = sxp3$test$coefficients, 
              var.d = (sxp3$test$sigma)^2,
-             cov = covp3)
-}
+             cov = covp3)}
+  
 est <- get.est %>% group_by(group) %>% 
                   summarise(Q = mean(d), 
                             U = mean(var.d), 
@@ -232,16 +233,24 @@ est <- get.est %>% group_by(group) %>%
                             LCL = Q - 1.96*sqrt(T), 
                             UCL = Q + 1.96*sqrt(T),
                             SE = sqrt(T))  %>%
-  mutate(Race = word(group, 1), #This makes a new variable called "Race" and it uses the first word in the "group" variable for its values
-         Gender = word(group, 2), #This makes a new variable called "Gender" and it uses the second word in the "group" variable for its values
-         Degree = word(group, 3), #This makes a new variable called "Degree" and it uses the third word in the "group" variable for its values
-         Gender_Degree = paste(Gender,Degree, sep= " "), #This makes a new variable that combines the gender and degree. It'll be useful in the figure.
-         Degree = factor(Degree, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
-         Gender_Degree = factor(Gender_Degree, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
+  mutate(Race = word(group, 1), 
+        
+          Gender = word(group, 2), 
+         
+         Education = word(group, 3), 
+         
+         Gender_Education = paste(Gender,Education, sep= " "), 
+         
+         Education = factor(Education, levels = c("Primary", "Secondary", "Associates",  "Bachelors", "Masters", "PhD")),
+         
+         Gender_Education = factor(Gender_Education, levels = c("Men Primary", "Women Primary", "Men Secondary", "Women Secondary","Men Associates", "Women Associates", "Men Bachelors", "Women Bachelors", "Men Masters", "Women Masters", "Men PhD","Women PhD")))
+
 return <- est}
 
 #then we run that function to get our estimates
+
 est <- pool_and_cov_diffwm(mod,groups)
+
 ```
 
 Make the figure
@@ -250,7 +259,7 @@ Make the figure
 #group= sets what groups you want within each term on the x axis. 
 #color= what groups should define the different colors you use. 
 #shape = sets what term defines the symbols that are used for the points.
-ggplot(data=est, aes(x=Race, y=Q, group=Gender_Degree, color= Degree, shape = Gender)) +
+ggplot(data=est, aes(x=Race, y=Q, group=Gender_Education, color= Education, shape = Gender)) +
   #geom_point sets it as points on the plot (as apposed to geom_bar which would give a bar graph)
   geom_point(position = position_dodge(width=0.90), size=3) + 
   # gemo_errorbar sets the error bars
@@ -260,10 +269,10 @@ ggplot(data=est, aes(x=Race, y=Q, group=Gender_Degree, color= Degree, shape = Ge
   # set the y-axis label
   ylab("Income")  +
   #set the y-axis scale
-  scale_y_continuous(breaks=seq(0, 200000, 25000),limits=c(0,200000)) 
+  scale_y_continuous(breaks=seq(0, 150000, 20000),limits=c(0,150000)) 
 
 #Saves the image
-ggsave("~/model.png", plot= last_plot(), dpi=300, width = 7.3, height = 3.25, units = "in", device = "png")
+ggsave("figure20k.png", plot= last_plot(), dpi=300, width = 7.3, height = 3.25, units = "in", device = "png")
 ```
 
 -------Below here is the specific example---------
@@ -489,10 +498,10 @@ est <- get.est %>% group_by(group) %>%
                             SE = sqrt(T)) %>%
   mutate(Race = word(group, 1), #This makes a new variable called "Race" and it uses the first word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
          Gender = word(group, 2), #This makes a new variable called "Gender" and it uses the second word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
-         Degree = word(group, 3), #This makes a new variable called "Degree" and it uses the third word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
-         Gender_Degree = paste(Gender,Degree, sep= " "), #This makes a new variable that combines the gender and degree. It'll be useful in the figure. You'll need to make sure this makes sense for your data.
-         Degree = factor(Degree, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
-         Gender_Degree = factor(Gender_Degree, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
+         Education = word(group, 3), #This makes a new variable called "Education" and it uses the third word in the "group" variable for its values. You'll need to make sure this makes sense for your data.
+         Gender_Education = paste(Gender,Education, sep= " "), #This makes a new variable that combines the gender and Education. It'll be useful in the figure. You'll need to make sure this makes sense for your data.
+         Education = factor(Education, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
+         Gender_Educationee = factor(Gender_Education, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
 ```
 
 Get estimates for non-MI
@@ -518,10 +527,10 @@ est <- get.est %>% group_by(group) %>%
                             SE = sqrt(T))  %>%
   mutate(Race = word(group, 1), #This makes a new variable called "Race" and it uses the first word in the "group" variable for its values
          Gender = word(group, 2), #This makes a new variable called "Gender" and it uses the second word in the "group" variable for its values
-         Degree = word(group, 3), #This makes a new variable called "Degree" and it uses the third word in the "group" variable for its values
-         Gender_Degree = paste(Gender,Degree, sep= " "), #This makes a new variable that combines the gender and degree. It'll be useful in the figure.
-         Degree = factor(Degree, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
-         Gender_Degree = factor(Gender_Degree, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
+         Education = word(group, 3), #This makes a new variable called "Education" and it uses the third word in the "group" variable for its values
+         Gender_Education = paste(Gender,Education, sep= " "), #This makes a new variable that combines the gender and Education. It'll be useful in the figure.
+         Education = factor(Education, levels = c("No_HS", "HS", "Professional",  "AA", "BA", "MA", "PhD")), #This sets the order that they'll come up in the figure
+         Gender_Education = factor(Gender_Education, levels = c("Men No_HS", "Women No_HS", "Men HS", "Women HS","Men Professional", "Women Professional", "Men AA", "Women AA", "Men BA", "Women BA", "Men MA","Women MA","Men PhD", "Women PhD"))) #This sets the order that they'll come up in the figure
 return <- est}
 
 #then we run that function to get our estimates
@@ -535,7 +544,7 @@ Make the figure
 #group= sets what groups you want within each term on the x axis. 
 #color= what groups should define the different colors you use. 
 #shape = sets what term defines the symbols that are used for the points.
-ggplot(data=est, aes(x=Race, y=Q, group=Gender_Degree, color= Degree, shape = Gender)) +
+ggplot(data=est, aes(x=Race, y=Q, group=Gender_Education, color= Education, shape = Gender)) +
   #geom_point sets it as points on the plot (as apposed to geom_bar which would give a bar graph)
   geom_point(position = position_dodge(width=0.90), size=3) + 
   # gemo_errorbar sets the error bars
@@ -545,7 +554,7 @@ ggplot(data=est, aes(x=Race, y=Q, group=Gender_Degree, color= Degree, shape = Ge
   # set the y-axis label
   ylab("Income")  +
   #set the y-axis scale
-  scale_y_continuous(breaks=seq(0, 200000, 25000),limits=c(0,200000)) 
+  scale_y_continuous(breaks=seq(0, 150000, 25000),limits=c(0,150000)) 
 
 #Saves the image
 ggsave("~/model.png", plot= last_plot(), dpi=300, width = 7.3, height = 3.25, units = "in", device = "png")
