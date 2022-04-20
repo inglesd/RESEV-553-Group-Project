@@ -265,9 +265,10 @@ ggplot(data=est, aes(x=Race, y=Q, group=Gender_Education, color= Education, shap
   # gemo_errorbar sets the error bars
   geom_errorbar(aes( ymax= Q+SE, ymin=Q-SE), position="dodge")+
   #Theme() is setting the key and some other stuff
-  theme(legend.position = "right",  axis.text.x=element_text(angle=0) , axis.title.x = element_blank(), axis.ticks.x=element_blank(),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"),text = element_text(size=16, color = "black")) +
+  theme(legend.position = "right",  axis.text.x=element_text(angle=0) ,axis.ticks.x=element_blank(),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"),text = element_text(size=16, color = "black")) +
   # set the y-axis label
-  ylab("Income")  +
+  ylab("Income") +
+  xlab("Race") +
   #set the y-axis scale
   scale_y_continuous(breaks=seq(0, 150000, 20000),limits=c(0,150000)) 
 
