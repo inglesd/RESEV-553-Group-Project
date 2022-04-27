@@ -11,6 +11,7 @@ library(multcomp)
 library(ggplot2)
 library(mitml)
 library(foreach)
+library(xlsx)
 cbbpalette <- c( "#009E73", "#e79f00", "#9ad0f3", "#0072B2", "#D55E00", 
     "#CC79A7","#000000", "#F0E442") #colorblind and grayscale friendly.
 ```
@@ -251,6 +252,7 @@ return <- est}
 
 est <- pool_and_cov_diffwm(mod,groups)
 
+write.csv(est,file = "estimates.csv")
 ```
 
 Make the figure
